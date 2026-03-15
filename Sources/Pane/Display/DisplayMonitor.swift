@@ -63,9 +63,14 @@ final class DisplayMonitor: @unchecked Sendable {
     // MARK: - Reconfiguration handler
 
     func handleReconfiguration(displayID: CGDirectDisplayID, flags: CGDisplayChangeSummaryFlags) {
+        // Log all events for debugging
+        Self.logger.debug("Reconfiguration event: display=\(displayID) flags=\(flags.rawValue) add=\(flags.contains(.addFlag)) builtin=\(CGDisplayIsBuiltin(displayID)) mirror=\(CGDisplayIsInMirrorSet(displayID))")
+
         guard flags.contains(.addFlag) else { return }
         guard !CGDisplayIsBuiltin(displayID).boolValue else { return }
-        guard !CGDisplayIsInMirrorSet(displayID).boolValue else { return }
+
+        // Don't filter on mirror set here — macOS may briefly mirror during reconfiguration.
+        // The display might already be in a mirror set if macOS auto-mirrors on connect.
 
         let uuid = displayUUID(for: displayID)
         let name = displayName(for: displayID)
