@@ -35,10 +35,17 @@ final class PromptWindowController {
         )
 
         let hostingView = NSHostingView(rootView: promptView)
-        hostingView.setFrameSize(hostingView.fittingSize)
+
+        // Size the panel to 60% of the built-in (MacBook) screen
+        let targetScreen = builtInScreen() ?? NSScreen.main
+        let screenFrame = targetScreen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let panelWidth = screenFrame.width * 0.6
+        let panelHeight = screenFrame.height * 0.6
+
+        let panelRect = NSRect(origin: .zero, size: NSSize(width: panelWidth, height: panelHeight))
 
         let panel = NSPanel(
-            contentRect: NSRect(origin: .zero, size: hostingView.fittingSize),
+            contentRect: panelRect,
             styleMask: [.titled, .fullSizeContentView, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -51,15 +58,10 @@ final class PromptWindowController {
         panel.contentView = hostingView
         panel.isReleasedWhenClosed = false
 
-        // Centre on the connected display or main screen
-        // Always show on the built-in display (MacBook screen), not the newly connected external
-        if let screen = builtInScreen() ?? NSScreen.main {
-            let screenFrame = screen.visibleFrame
-            let panelSize = panel.frame.size
-            let x = screenFrame.midX - panelSize.width / 2
-            let y = screenFrame.midY - panelSize.height / 2
-            panel.setFrameOrigin(NSPoint(x: x, y: y))
-        }
+        // Centre on the built-in display (MacBook screen)
+        let x = screenFrame.midX - panelWidth / 2
+        let y = screenFrame.midY - panelHeight / 2
+        panel.setFrameOrigin(NSPoint(x: x, y: y))
 
         panel.orderFrontRegardless()
         self.panel = panel
