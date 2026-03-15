@@ -32,26 +32,22 @@ struct PromptView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            Spacer()
+
             // Header
-            HStack(spacing: 14) {
+            VStack(spacing: 8) {
                 Image(systemName: "display")
-                    .font(.system(size: 36))
+                    .font(.system(size: 48, weight: .light))
                     .foregroundStyle(.secondary)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(displayName)
-                        .font(.system(size: 20, weight: .semibold))
-                    Text("\(Int(resolution.width))×\(Int(resolution.height))")
-                        .font(.system(size: 14))
-                        .foregroundStyle(.secondary)
-                }
+                Text(displayName)
+                    .font(.system(size: 28, weight: .semibold))
 
-                Spacer()
+                Text("\(Int(resolution.width))×\(Int(resolution.height))")
+                    .font(.system(size: 16))
+                    .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 32)
-            .padding(.vertical, 24)
-
-            Divider()
+            .padding(.bottom, 32)
 
             // Mode picker
             Picker("Mode", selection: $selectedMode) {
@@ -60,10 +56,10 @@ struct PromptView: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .padding(.horizontal, 32)
-            .padding(.vertical, 20)
+            .frame(width: 240)
+            .padding(.bottom, 32)
 
-            // Mode content — expanded to fill
+            // Mode content
             Group {
                 switch selectedMode {
                 case .extend:
@@ -72,40 +68,39 @@ struct PromptView: View {
                     MirrorView(selectedMirrorTarget: $selectedMirrorTarget)
                 }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, 32)
-            .padding(.bottom, 20)
 
-            Divider()
+            Spacer()
 
             // Remember checkbox
-            HStack {
-                Toggle("Remember for this display", isOn: $rememberDisplay)
-                    .toggleStyle(.checkbox)
-                    .font(.system(size: 13))
-                Spacer()
-            }
-            .padding(.horizontal, 32)
-            .padding(.vertical, 16)
+            Toggle("Remember for this display", isOn: $rememberDisplay)
+                .toggleStyle(.checkbox)
+                .font(.system(size: 15))
+                .padding(.bottom, 24)
 
-            Divider()
-
-            // Action buttons — centred on their own row
-            HStack(spacing: 16) {
-                Button("Dismiss") {
+            // Action buttons
+            HStack(spacing: 20) {
+                Button {
                     onDismiss()
+                } label: {
+                    Text("Dismiss")
+                        .frame(width: 120, height: 36)
                 }
                 .keyboardShortcut(.cancelAction)
                 .controlSize(.large)
 
-                Button("Apply") {
+                Button {
                     applyConfiguration()
+                } label: {
+                    Text("Apply")
+                        .frame(width: 120, height: 36)
                 }
                 .keyboardShortcut(.defaultAction)
                 .controlSize(.large)
+                .buttonStyle(.borderedProminent)
             }
-            .padding(.vertical, 20)
+            .padding(.bottom, 32)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func applyConfiguration() {
