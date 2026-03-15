@@ -23,6 +23,8 @@ struct DisplayConfiguration: Codable, Sendable {
     var extendPreset: ExtendPreset
     var mirrorTarget: MirrorTarget
     var rememberThisDisplay: Bool
+    /// Human-readable display name (e.g. "LG UltraWide"). Optional for backwards compat with older plists.
+    var displayName: String?
 }
 
 // MARK: - Display-friendly labels

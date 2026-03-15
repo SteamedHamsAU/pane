@@ -79,7 +79,8 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             submenu.addItem(empty)
         } else {
             for entry in entries {
-                let label = "\(entry.uuid.prefix(8))… · \(entry.config.mode.displayName) \(entry.config.extendPreset.displayName)"
+                let name = entry.config.displayName ?? "\(entry.uuid.prefix(8))…"
+                let label = "\(name) · \(entry.config.mode.displayName) \(entry.config.extendPreset.displayName)"
                 let item = NSMenuItem(title: label, action: nil, keyEquivalent: "")
                 item.isEnabled = false
                 submenu.addItem(item)

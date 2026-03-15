@@ -70,7 +70,7 @@ struct SettingsView: View {
                     ForEach(entries, id: \.uuid) { entry in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(entry.uuid.prefix(12) + "…")
+                                Text(entry.config.displayName ?? String(entry.uuid.prefix(12)) + "…")
                                     .font(.system(size: 13, weight: .medium))
                                 Text("\(entry.config.mode.displayName) · \(entry.config.extendPreset.displayName)")
                                     .font(.system(size: 11))

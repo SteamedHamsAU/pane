@@ -95,7 +95,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DisplayConfigurator.apply(config, primaryID: CGMainDisplayID(), externalID: displayID)
 
         if config.rememberThisDisplay {
-            configStore.save(config, for: uuid)
+            var savedConfig = config
+            savedConfig.displayName = name
+            configStore.save(savedConfig, for: uuid)
             Self.logger.notice("Saved config for \(name) [\(uuid)]")
         }
 
