@@ -1,19 +1,47 @@
 import AppKit
 import SwiftUI
+import Sparkle
 
 /// Controls the settings window opened from the menu bar.
-///
-/// See pane-spec Section 10.
 @MainActor
 final class SettingsWindowController {
 
     private var window: NSWindow?
+    private let configStore: DisplayConfigStore
+    private let updaterController: SPUStandardUpdaterController
 
-    /// Show the settings window.
+    init(configStore: DisplayConfigStore, updaterController: SPUStandardUpdaterController) {
+        self.configStore = configStore
+        self.updaterController = updaterController
+    }
+
     func show() {
-        // TODO: Phase 4 — Create NSWindow hosting SettingsView:
-        //   - Standard window with title "Pane Settings"
-        //   - Resizable: false
-        //   - Host SettingsView via NSHostingView
+        if let existing = window {
+            existing.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let settingsView = SettingsView(
+            configStore: configStore,
+            checkForUpdates: { [weak self] in
+                self?.updaterController.checkForUpdates(nil)
+            }
+        )
+
+        let hostingView = NSHostingView(rootView: settingsView)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 480, height: 420),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Pane Settings"
+        window.contentView = hostingView
+        window.center()
+        window.isReleasedWhenClosed = false
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        self.window = window
     }
 }

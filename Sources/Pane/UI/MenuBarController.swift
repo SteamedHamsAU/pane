@@ -34,6 +34,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
+        let optionHeld = NSEvent.modifierFlags.contains(.option)
 
         // Current display status
         if let display = currentDisplay {
@@ -54,17 +55,19 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
 
-        // Re-trigger prompt
-        let retrigger = NSMenuItem(title: "Re-trigger prompt", action: #selector(retriggerPrompt), keyEquivalent: "")
-        retrigger.target = self
-        retrigger.isEnabled = currentDisplay != nil
-        menu.addItem(retrigger)
+        // Option-only: Re-trigger prompt
+        if optionHeld {
+            let retrigger = NSMenuItem(title: "Re-trigger prompt", action: #selector(retriggerPrompt), keyEquivalent: "")
+            retrigger.target = self
+            retrigger.isEnabled = currentDisplay != nil
+            menu.addItem(retrigger)
 
-        let testNotif = NSMenuItem(title: "Test notification", action: #selector(testNotification), keyEquivalent: "")
-        testNotif.target = self
-        menu.addItem(testNotif)
+            let testNotif = NSMenuItem(title: "Test notification", action: #selector(testNotification), keyEquivalent: "")
+            testNotif.target = self
+            menu.addItem(testNotif)
 
-        menu.addItem(.separator())
+            menu.addItem(.separator())
+        }
 
         // Remembered displays submenu
         let rememberedItem = NSMenuItem(title: "Remembered displays", action: nil, keyEquivalent: "")
@@ -85,7 +88,29 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         rememberedItem.submenu = submenu
         menu.addItem(rememberedItem)
 
+        // Open Settings
+        let settings = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        settings.target = self
+        menu.addItem(settings)
+
         menu.addItem(.separator())
+
+        // Option-only: build number
+        if optionHeld {
+            let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+            let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+            let devSuffix: String
+            #if DEV_BUILD
+            devSuffix = " (Dev)"
+            #else
+            devSuffix = ""
+            #endif
+            let versionItem = NSMenuItem(title: "v\(version) build \(build)\(devSuffix)", action: nil, keyEquivalent: "")
+            versionItem.isEnabled = false
+            menu.addItem(versionItem)
+
+            menu.addItem(.separator())
+        }
 
         // Quit
         let quit = NSMenuItem(title: "Quit Pane", action: #selector(quitApp), keyEquivalent: "q")
@@ -101,6 +126,10 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     @objc private func testNotification() {
         onTestNotification?()
+    }
+
+    @objc private func openSettings() {
+        onOpenSettings?()
     }
 
     @objc private func quitApp() {

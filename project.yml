@@ -11,10 +11,15 @@ settings:
   base:
     SWIFT_STRICT_CONCURRENCY: complete
     DEVELOPMENT_TEAM: YOUR_TEAM_ID
-    MARKETING_VERSION: 1.0.0
+    MARKETING_VERSION: 0.1
     CURRENT_PROJECT_VERSION: 1
     ARCHS: "arm64 x86_64"
     CODE_SIGN_STYLE: Manual
+  configs:
+    Debug:
+      SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG DEV_BUILD"
+    Release:
+      SWIFT_ACTIVE_COMPILATION_CONDITIONS: ""
 
 packages:
   Sparkle:
@@ -37,6 +42,11 @@ targets:
         COMBINE_HIDPI_IMAGES: true
     entitlements:
       path: Config/Pane.entitlements
+    preBuildScripts:
+      - name: Set Build Number
+        script: |
+          "${SRCROOT}/Scripts/set-build-number.sh"
+        basedOnDependencyAnalysis: false
     dependencies:
       - package: Sparkle
 

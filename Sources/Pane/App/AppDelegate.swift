@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var displayMonitor: DisplayMonitor?
     private var promptController: PromptWindowController?
     private var toastController: ToastWindowController?
+    private var settingsController: SettingsWindowController?
     private let configStore = DisplayConfigStore()
     private var currentDisplay: ConnectedDisplay?
 
@@ -41,9 +42,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menuBar.setup()
         menuBarController = menuBar
 
-        // Prompt and toast controllers
+        // Prompt, toast, and settings controllers
         promptController = PromptWindowController()
         toastController = ToastWindowController()
+        settingsController = SettingsWindowController(configStore: configStore, updaterController: updaterController)
+        menuBar.onOpenSettings = { [weak self] in
+            self?.settingsController?.show()
+        }
 
         // Display monitoring
         let monitor = DisplayMonitor()
