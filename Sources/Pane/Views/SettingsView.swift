@@ -23,6 +23,9 @@ struct SettingsView: View {
         .onAppear {
             entries = configStore.allEntries()
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+            entries = configStore.allEntries()
+        }
     }
 
     // MARK: - General
