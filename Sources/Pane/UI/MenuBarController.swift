@@ -1,33 +1,109 @@
 import AppKit
 
 /// Manages the menu bar status item and its dynamic menu.
-///
-/// See pane-spec Section 9 for menu structure.
 @MainActor
-final class MenuBarController {
+final class MenuBarController: NSObject, NSMenuDelegate {
 
     private var statusItem: NSStatusItem?
     private let configStore: DisplayConfigStore
+    private var currentDisplay: ConnectedDisplay?
+    var onRetriggerPrompt: (() -> Void)?
+    var onOpenSettings: (() -> Void)?
 
     init(configStore: DisplayConfigStore) {
         self.configStore = configStore
+        super.init()
     }
 
-    /// Set up the NSStatusItem in the system menu bar.
     func setup() {
-        // TODO: Phase 3 — Create NSStatusItem:
-        //   - Template image (display icon, 18×18pt)
-        //   - Build menu dynamically on each open
-        //   - Menu structure per spec Section 9
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        if let button = statusItem?.button {
+            button.image = NSImage(systemSymbolName: "display", accessibilityDescription: "Pane")
+        }
+        let menu = NSMenu()
+        menu.delegate = self
+        statusItem?.menu = menu
     }
 
-    /// Rebuild the menu contents (call when state changes).
-    func updateMenu() {
-        // TODO: Phase 3 — Dynamic menu:
-        //   - Current display status (name, mode, preset)
-        //   - Re-trigger prompt (disabled if no external connected)
-        //   - Open settings...
-        //   - Remembered displays submenu with Forget actions
-        //   - Quit Pane
+    func updateCurrentDisplay(_ display: ConnectedDisplay?) {
+        currentDisplay = display
     }
+
+    // MARK: - NSMenuDelegate
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.removeAllItems()
+
+        // Current display status
+        if let display = currentDisplay {
+            let statusText: String
+            if let config = display.appliedConfig {
+                statusText = "\(display.name) · \(config.mode.displayName) \(config.extendPreset.displayName)"
+            } else {
+                statusText = "\(display.name) · connected"
+            }
+            let statusItem = NSMenuItem(title: statusText, action: nil, keyEquivalent: "")
+            statusItem.isEnabled = false
+            menu.addItem(statusItem)
+        } else {
+            let noDisplay = NSMenuItem(title: "No display connected", action: nil, keyEquivalent: "")
+            noDisplay.isEnabled = false
+            menu.addItem(noDisplay)
+        }
+
+        menu.addItem(.separator())
+
+        // Re-trigger prompt
+        let retrigger = NSMenuItem(title: "Re-trigger prompt", action: #selector(retriggerPrompt), keyEquivalent: "")
+        retrigger.target = self
+        retrigger.isEnabled = currentDisplay != nil
+        menu.addItem(retrigger)
+
+        menu.addItem(.separator())
+
+        // Remembered displays submenu
+        let rememberedItem = NSMenuItem(title: "Remembered displays", action: nil, keyEquivalent: "")
+        let submenu = NSMenu()
+        let entries = configStore.allEntries()
+        if entries.isEmpty {
+            let empty = NSMenuItem(title: "No remembered displays", action: nil, keyEquivalent: "")
+            empty.isEnabled = false
+            submenu.addItem(empty)
+        } else {
+            for entry in entries {
+                let label = "\(entry.uuid.prefix(8))… · \(entry.config.mode.displayName) \(entry.config.extendPreset.displayName)"
+                let item = NSMenuItem(title: label, action: nil, keyEquivalent: "")
+                item.isEnabled = false
+                submenu.addItem(item)
+            }
+        }
+        rememberedItem.submenu = submenu
+        menu.addItem(rememberedItem)
+
+        menu.addItem(.separator())
+
+        // Quit
+        let quit = NSMenuItem(title: "Quit Pane", action: #selector(quitApp), keyEquivalent: "q")
+        quit.target = self
+        menu.addItem(quit)
+    }
+
+    // MARK: - Actions
+
+    @objc private func retriggerPrompt() {
+        onRetriggerPrompt?()
+    }
+
+    @objc private func quitApp() {
+        NSApplication.shared.terminate(nil)
+    }
+}
+
+/// Tracks a currently connected external display.
+struct ConnectedDisplay {
+    let id: CGDirectDisplayID
+    let uuid: String
+    let name: String
+    let resolution: CGSize
+    var appliedConfig: DisplayConfiguration?
 }

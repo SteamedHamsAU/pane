@@ -1,12 +1,6 @@
 import SwiftUI
 
 /// Root SwiftUI view for the display configuration prompt.
-///
-/// Structure per pane-spec Section 7:
-/// - Header: icon, display name, resolution
-/// - Segmented control: Extend | Mirror
-/// - ExtendView or MirrorView
-/// - Footer: remember checkbox, dismiss, apply
 struct PromptView: View {
 
     let displayName: String
@@ -37,23 +31,73 @@ struct PromptView: View {
     }
 
     var body: some View {
-        // TODO: Phase 2 — Layout per spec Section 7:
-        // VStack spacing=0 {
-        //   Header row (icon, name, resolution)
-        //   Divider
-        //   Segmented picker (Extend | Mirror)
-        //   ExtendView or MirrorView
-        //   Divider
-        //   Footer (remember checkbox, dismiss, apply)
-        // }
-        VStack {
-            Text("Configure \(displayName)")
-                .font(.headline)
-            Text("TODO: Full prompt UI")
-                .foregroundStyle(.secondary)
+        VStack(spacing: 0) {
+            // Header
+            HStack(spacing: 10) {
+                Image(systemName: "display")
+                    .font(.system(size: 22))
+                    .foregroundStyle(.secondary)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(displayName)
+                        .font(.system(size: 14, weight: .medium))
+                    Text("\(Int(resolution.width))×\(Int(resolution.height))")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+
+            Divider()
+
+            // Mode picker
+            Picker("Mode", selection: $selectedMode) {
+                Text("Extend").tag(DisplayConfiguration.Mode.extend)
+                Text("Mirror").tag(DisplayConfiguration.Mode.mirror)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+
+            // Mode content
+            Group {
+                switch selectedMode {
+                case .extend:
+                    ExtendView(selectedPreset: $selectedPreset)
+                case .mirror:
+                    MirrorView(selectedMirrorTarget: $selectedMirrorTarget)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 12)
+
+            Divider()
+
+            // Footer
+            HStack {
+                Toggle("Remember for this display", isOn: $rememberDisplay)
+                    .toggleStyle(.checkbox)
+                    .font(.system(size: 12))
+
+                Spacer()
+
+                Button("Dismiss") {
+                    onDismiss()
+                }
+                .keyboardShortcut(.cancelAction)
+
+                Button("Apply") {
+                    applyConfiguration()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
         }
-        .frame(width: 360)
-        .padding()
+        .frame(width: 380)
     }
 
     private func applyConfiguration() {
