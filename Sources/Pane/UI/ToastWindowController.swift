@@ -1,136 +1,85 @@
 import AppKit
-import SwiftUI
+import UserNotifications
 
-/// Ephemeral toast notification for known-display auto-apply events.
-///
-/// Appears bottom-right of the built-in display, auto-dismisses after configurable duration.
+/// Shows native macOS notifications for known-display auto-apply events.
 @MainActor
-final class ToastWindowController {
+final class ToastWindowController: NSObject, UNUserNotificationCenterDelegate {
 
-    private var panel: NSPanel?
-    private var dismissTask: Task<Void, Never>?
+    private var onChangeTapped: (() -> Void)?
+    private static let categoryID = "DISPLAY_APPLIED"
+    private static let changeActionID = "CHANGE_ACTION"
+
+    override init() {
+        super.init()
+        let center = UNUserNotificationCenter.current()
+        center.delegate = self
+
+        // Register "Change" action
+        let changeAction = UNNotificationAction(
+            identifier: Self.changeActionID,
+            title: "Change",
+            options: [.foreground]
+        )
+        let category = UNNotificationCategory(
+            identifier: Self.categoryID,
+            actions: [changeAction],
+            intentIdentifiers: []
+        )
+        center.setNotificationCategories([category])
+
+        // Request permission
+        center.requestAuthorization(options: [.alert, .sound]) { granted, error in
+            if let error {
+                print("Notification permission error: \(error)")
+            }
+        }
+    }
 
     func show(
         message: String,
         duration: TimeInterval = 4,
         onChangeTapped: @escaping () -> Void
     ) {
-        dismiss()
+        self.onChangeTapped = onChangeTapped
 
-        let toastView = ToastView(message: message, onChangeTapped: {
-            onChangeTapped()
-        })
+        let content = UNMutableNotificationContent()
+        content.title = "Pane"
+        content.body = message
+        content.sound = .default
+        content.categoryIdentifier = Self.categoryID
 
-        let hostingView = NSHostingView(rootView: toastView)
-        hostingView.setFrameSize(hostingView.fittingSize)
-
-        let panel = NSPanel(
-            contentRect: NSRect(origin: .zero, size: hostingView.fittingSize),
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: false
+        let request = UNNotificationRequest(
+            identifier: UUID().uuidString,
+            content: content,
+            trigger: nil // deliver immediately
         )
-        panel.isFloatingPanel = true
-        panel.level = .floating
-        panel.backgroundColor = .clear
-        panel.isOpaque = false
-        panel.hasShadow = true
-        panel.contentView = hostingView
-        panel.isReleasedWhenClosed = false
 
-        // Position bottom-right of built-in screen, 20pt inset
-        let screen = builtInScreen() ?? NSScreen.main ?? NSScreen.screens.first
-        if let screenFrame = screen?.visibleFrame {
-            let panelSize = panel.frame.size
-            let x = screenFrame.maxX - panelSize.width - 20
-            let y = screenFrame.minY + 20
-            panel.setFrameOrigin(NSPoint(x: x, y: y - 12)) // start 12pt lower for slide-up
-        }
-
-        panel.alphaValue = 0
-        panel.orderFrontRegardless()
-        self.panel = panel
-
-        // Animate in: slide up 12pt + fade in
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.2
-            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            panel.animator().alphaValue = 1
-            var origin = panel.frame.origin
-            origin.y += 12
-            panel.animator().setFrameOrigin(origin)
-        }
-
-        // Schedule auto-dismiss
-        dismissTask = Task {
-            try? await Task.sleep(for: .seconds(duration))
-            guard !Task.isCancelled else { return }
-            animateOut()
-        }
+        UNUserNotificationCenter.current().add(request)
     }
 
     func dismiss() {
-        dismissTask?.cancel()
-        panel?.close()
-        panel = nil
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
     }
 
-    private func animateOut() {
-        guard let panel else { return }
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.15
-            panel.animator().alphaValue = 0
-        }, completionHandler: { [weak self] in
-            self?.panel?.close()
-            self?.panel = nil
-        })
+    // MARK: - UNUserNotificationCenterDelegate
+
+    // Show notification even when app is in foreground
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        [.banner, .sound]
     }
 
-    private func builtInScreen() -> NSScreen? {
-        NSScreen.screens.first { screen in
-            guard let screenNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID else {
-                return false
-            }
-            return CGDisplayIsBuiltin(screenNumber) != 0
-        }
-    }
-}
-
-/// SwiftUI view for the toast notification content.
-struct ToastView: View {
-    let message: String
-    let onChangeTapped: () -> Void
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Circle()
-                .fill(.green)
-                .frame(width: 10, height: 10)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(message)
-                    .font(.system(size: 13, weight: .medium))
-                HStack(spacing: 4) {
-                    Text("from memory ·")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                    Button("change") {
-                        onChangeTapped()
-                    }
-                    .font(.system(size: 11))
-                    .buttonStyle(.link)
-                }
+    // Handle "Change" action tap
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        if response.actionIdentifier == Self.changeActionID {
+            await MainActor.run {
+                onChangeTapped?()
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(.ultraThinMaterial)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
-        )
     }
 }
