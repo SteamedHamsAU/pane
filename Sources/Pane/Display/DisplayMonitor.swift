@@ -49,7 +49,7 @@ final class DisplayMonitor: @unchecked Sendable {
         if status != .success {
             Self.logger.error("Failed to register display reconfiguration callback: \(status.rawValue)")
         } else {
-            Self.logger.info("Display monitoring started")
+            Self.logger.notice("Display monitoring started")
         }
     }
 
@@ -57,14 +57,14 @@ final class DisplayMonitor: @unchecked Sendable {
     func stopMonitoring() {
         let pointer = Unmanaged.passUnretained(self).toOpaque()
         CGDisplayRemoveReconfigurationCallback(Self.reconfigurationCallback, pointer)
-        Self.logger.info("Display monitoring stopped")
+        Self.logger.notice("Display monitoring stopped")
     }
 
     // MARK: - Reconfiguration handler
 
     func handleReconfiguration(displayID: CGDirectDisplayID, flags: CGDisplayChangeSummaryFlags) {
         // Log all events for debugging
-        Self.logger.debug("Reconfiguration event: display=\(displayID) flags=\(flags.rawValue) add=\(flags.contains(.addFlag)) builtin=\(CGDisplayIsBuiltin(displayID)) mirror=\(CGDisplayIsInMirrorSet(displayID))")
+        Self.logger.notice("Reconfiguration event: display=\(displayID) flags=\(flags.rawValue) add=\(flags.contains(.addFlag)) builtin=\(CGDisplayIsBuiltin(displayID)) mirror=\(CGDisplayIsInMirrorSet(displayID))")
 
         guard flags.contains(.addFlag) else { return }
         guard !CGDisplayIsBuiltin(displayID).boolValue else { return }
@@ -77,7 +77,7 @@ final class DisplayMonitor: @unchecked Sendable {
         let bounds = CGDisplayBounds(displayID)
         let resolution = bounds.size
 
-        Self.logger.info("External display connected: \(name) [\(uuid)] \(Int(resolution.width))×\(Int(resolution.height))")
+        Self.logger.notice("External display connected: \(name) [\(uuid)] \(Int(resolution.width))×\(Int(resolution.height))")
 
         Task { @MainActor in
             self.delegate?.displayDidConnect(
@@ -142,7 +142,7 @@ final class DisplayMonitor: @unchecked Sendable {
             }
         }
 
-        Self.logger.info("No IOKit product name found for display \(displayID), using fallback")
+        Self.logger.notice("No IOKit product name found for display \(displayID), using fallback")
         return "External Display"
     }
 }

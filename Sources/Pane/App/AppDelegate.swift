@@ -43,7 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         monitor.startMonitoring()
         displayMonitor = monitor
 
-        Self.logger.info("Pane started")
+        Self.logger.notice("Pane started")
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -67,7 +67,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.applyAndSave(config: config, displayID: displayID, uuid: uuid, name: name, resolution: resolution)
             },
             onDismiss: {
-                Self.logger.info("Prompt dismissed for \(name)")
+                Self.logger.notice("Prompt dismissed for \(name)")
             }
         )
     }
@@ -83,7 +83,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if config.rememberThisDisplay {
             configStore.save(config, for: uuid)
-            Self.logger.info("Saved config for \(name) [\(uuid)]")
+            Self.logger.notice("Saved config for \(name) [\(uuid)]")
         }
 
         currentDisplay = ConnectedDisplay(
@@ -112,7 +112,7 @@ extension AppDelegate: DisplayMonitorDelegate {
         name: String,
         resolution: CGSize
     ) {
-        Self.logger.info("Display connected: \(name) [\(uuid)]")
+        Self.logger.notice("Display connected: \(name) [\(uuid)]")
 
         if let savedConfig = configStore.configuration(for: uuid) {
             // Known display — apply silently
@@ -123,16 +123,22 @@ extension AppDelegate: DisplayMonitorDelegate {
             menuBarController?.updateCurrentDisplay(currentDisplay)
 
             let modeLabel = "\(savedConfig.mode.displayName.lowercased()) \(savedConfig.extendPreset.displayName.lowercased())"
-            Self.logger.info("Applied saved config: \(modeLabel)")
+            Self.logger.notice("Applied saved config: \(modeLabel)")
 
-            // Show toast
-            toastController?.show(
-                message: "\(name) — \(modeLabel) applied",
-                onChangeTapped: { [weak self] in
-                    self?.toastController?.dismiss()
-                    self?.showPrompt(displayID: id, uuid: uuid, name: name, resolution: resolution)
-                }
-            )
+            // Show toast after a brief delay — the display reconfiguration
+            // invalidates screen geometry, so we wait for it to settle
+            let toastMessage = "\(name) — \(modeLabel) applied"
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(1.5))
+                Self.logger.notice("Showing toast: \(toastMessage)")
+                self?.toastController?.show(
+                    message: toastMessage,
+                    onChangeTapped: { [weak self] in
+                        self?.toastController?.dismiss()
+                        self?.showPrompt(displayID: id, uuid: uuid, name: name, resolution: resolution)
+                    }
+                )
+            }
         } else {
             // Unknown display — show prompt
             currentDisplay = ConnectedDisplay(
