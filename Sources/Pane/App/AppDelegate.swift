@@ -124,6 +124,15 @@ extension AppDelegate: DisplayMonitorDelegate {
 
             let modeLabel = "\(savedConfig.mode.displayName.lowercased()) \(savedConfig.extendPreset.displayName.lowercased())"
             Self.logger.info("Applied saved config: \(modeLabel)")
+
+            // Show toast
+            toastController?.show(
+                message: "\(name) — \(modeLabel) applied",
+                onChangeTapped: { [weak self] in
+                    self?.toastController?.dismiss()
+                    self?.showPrompt(displayID: id, uuid: uuid, name: name, resolution: resolution)
+                }
+            )
         } else {
             // Unknown display — show prompt
             currentDisplay = ConnectedDisplay(

@@ -71,11 +71,14 @@ struct PromptView: View {
 
             Spacer()
 
-            // Remember checkbox
-            Toggle("Remember for this display", isOn: $rememberDisplay)
-                .toggleStyle(.checkbox)
-                .font(.system(size: 15))
-                .padding(.bottom, 24)
+            // Remember preference
+            Picker("", selection: $rememberDisplay) {
+                Text("Remember for this display").tag(true)
+                Text("Prompt every time for this monitor").tag(false)
+            }
+            .labelsHidden()
+            .frame(width: 320)
+            .padding(.bottom, 24)
 
             // Action buttons
             HStack(spacing: 20) {
