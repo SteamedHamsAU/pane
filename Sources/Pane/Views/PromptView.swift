@@ -13,11 +13,28 @@ struct PromptView: View {
     let resolution: CGSize
     let onApply: (DisplayConfiguration) -> Void
     let onDismiss: () -> Void
+    private let presetDefaults: PresetDefaults
 
     @State private var selectedMode: DisplayConfiguration.Mode = .extend
-    @State private var selectedPreset: DisplayConfiguration.ExtendPreset = .externalRight
-    @State private var selectedMirrorTarget: DisplayConfiguration.MirrorTarget = .macBook
+    @State private var selectedPreset: DisplayConfiguration.ExtendPreset
+    @State private var selectedMirrorTarget: DisplayConfiguration.MirrorTarget
     @State private var rememberDisplay: Bool = true
+
+    init(
+        displayName: String,
+        resolution: CGSize,
+        presetDefaults: PresetDefaults = .standard,
+        onApply: @escaping (DisplayConfiguration) -> Void,
+        onDismiss: @escaping () -> Void
+    ) {
+        self.displayName = displayName
+        self.resolution = resolution
+        self.onApply = onApply
+        self.onDismiss = onDismiss
+        self.presetDefaults = presetDefaults
+        _selectedPreset = State(initialValue: presetDefaults.lastExtendPreset)
+        _selectedMirrorTarget = State(initialValue: presetDefaults.lastMirrorTarget)
+    }
 
     var body: some View {
         // TODO: Phase 2 — Layout per spec Section 7:
@@ -37,6 +54,12 @@ struct PromptView: View {
         }
         .frame(width: 360)
         .padding()
+    }
+
+    private func applyConfiguration() {
+        presetDefaults.lastExtendPreset = selectedPreset
+        presetDefaults.lastMirrorTarget = selectedMirrorTarget
+        onApply(buildConfiguration())
     }
 
     private func buildConfiguration() -> DisplayConfiguration {
