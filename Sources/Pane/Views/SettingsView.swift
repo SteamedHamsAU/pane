@@ -1,6 +1,8 @@
 import SwiftUI
+import AppKit
 import ServiceManagement
 
+@MainActor
 struct SettingsView: View {
 
     let configStore: DisplayConfigStore
@@ -9,6 +11,8 @@ struct SettingsView: View {
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var showNotification = UserDefaults.standard.object(forKey: "showToastOnKnownDisplay") as? Bool ?? true
     @State private var entries: [(uuid: String, config: DisplayConfiguration)] = []
+    @State private var settingsWindowBox = WeakWindowBox()
+    @State private var settingsWindowID: ObjectIdentifier?
 
     var body: some View {
         TabView {
@@ -22,6 +26,30 @@ struct SettingsView: View {
         .frame(width: 460, height: 380)
         .onAppear {
             entries = configStore.allEntries()
+        }
+        .background(
+            WindowReader(
+                window: Binding(
+                    get: { settingsWindowBox.window },
+                    set: { newWindow in
+                        settingsWindowBox.window = newWindow
+                        settingsWindowID = newWindow.map { ObjectIdentifier($0) }
+                    }
+                )
+            )
+        )
+        .task(id: settingsWindowID) {
+            guard let window = settingsWindowBox.window else { return }
+
+            for await notification in NotificationCenter.default.notifications(
+                named: NSWindow.didBecomeKeyNotification,
+                object: window
+            ) {
+                _ = notification // unused payload; we just care that our window became key
+                await MainActor.run {
+                    entries = configStore.allEntries()
+                }
+            }
         }
     }
 
@@ -139,5 +167,39 @@ struct SettingsView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+private final class WeakWindowBox {
+    weak var window: NSWindow?
+}
+
+@MainActor
+private final class WindowReaderView: NSView {
+    var onWindowChange: ((NSWindow?) -> Void)?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        onWindowChange?(window)
+    }
+}
+
+@MainActor
+private struct WindowReader: NSViewRepresentable {
+    @Binding var window: NSWindow?
+
+    func makeNSView(context: Context) -> WindowReaderView {
+        let view = WindowReaderView()
+        view.onWindowChange = { [weak view] newWindow in
+            guard view != nil else { return }
+            Task { @MainActor in
+                self.window = newWindow
+            }
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: WindowReaderView, context: Context) {
+        // No-op: window changes are handled via viewDidMoveToWindow.
     }
 }

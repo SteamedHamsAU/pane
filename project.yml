@@ -42,7 +42,7 @@ targets:
         COMBINE_HIDPI_IMAGES: true
     entitlements:
       path: Config/Pane.entitlements
-    preBuildScripts:
+    postBuildScripts:
       - name: Set Build Number
         script: |
           "${SRCROOT}/Scripts/set-build-number.sh"
