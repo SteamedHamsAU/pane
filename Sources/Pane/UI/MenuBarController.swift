@@ -79,8 +79,11 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             submenu.addItem(empty)
         } else {
             for entry in entries {
-                let name = entry.config.displayName ?? "\(entry.uuid.prefix(8))…"
-                let label = "\(name) · \(entry.config.mode.displayName) \(entry.config.extendPreset.displayName)"
+                var parts = [entry.config.displayName ?? "\(entry.uuid.prefix(8))…"]
+                if let size = entry.config.screenSizeInches {
+                    parts.append("\(size)″")
+                }
+                let label = "\(parts.joined(separator: " ")) · \(entry.config.mode.displayName) \(entry.config.extendPreset.displayName)"
                 let item = NSMenuItem(title: label, action: nil, keyEquivalent: "")
                 item.isEnabled = false
                 submenu.addItem(item)

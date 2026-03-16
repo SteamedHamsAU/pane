@@ -98,11 +98,26 @@ struct SettingsView: View {
                     ForEach(entries, id: \.uuid) { entry in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(entry.config.displayName ?? String(entry.uuid.prefix(12)) + "…")
+                                let displayLabel: String = {
+                                    var parts = [entry.config.displayName ?? String(entry.uuid.prefix(12)) + "…"]
+                                    if let size = entry.config.screenSizeInches {
+                                        parts.append("\(size)″")
+                                    }
+                                    if let w = entry.config.resolutionWidth, let h = entry.config.resolutionHeight {
+                                        parts.append("(\(w) × \(h))")
+                                    }
+                                    return parts.joined(separator: " ")
+                                }()
+                                Text(displayLabel)
                                     .font(.system(size: 13, weight: .medium))
-                                Text("\(entry.config.mode.displayName) · \(entry.config.extendPreset.displayName)")
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.secondary)
+                                HStack(spacing: 4) {
+                                    let preset = entry.config.mode == .mirror
+                                        ? entry.config.mirrorTarget.displayName
+                                        : entry.config.extendPreset.displayName
+                                    Text("\(entry.config.mode.displayName) · \(preset)\(entry.config.rememberThisDisplay ? "" : " · Prompt")")
+                                }
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
                             }
 
                             Spacer()

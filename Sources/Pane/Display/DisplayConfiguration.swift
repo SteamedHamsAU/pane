@@ -25,6 +25,12 @@ struct DisplayConfiguration: Codable, Sendable {
     var rememberThisDisplay: Bool
     /// Human-readable display name (e.g. "LG UltraWide"). Optional for backwards compat with older plists.
     var displayName: String?
+    /// Native resolution width. Optional for backwards compat.
+    var resolutionWidth: Int?
+    /// Native resolution height. Optional for backwards compat.
+    var resolutionHeight: Int?
+    /// Display diagonal size in inches (e.g. 27). Optional for backwards compat.
+    var screenSizeInches: Int?
 }
 
 // MARK: - Display-friendly labels

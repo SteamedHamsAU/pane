@@ -1,7 +1,7 @@
+import AppKit
 import ColorSync
 import CoreGraphics
 import Foundation
-import IOKit
 import os
 
 /// Delegate protocol for display connection events.
@@ -104,45 +104,15 @@ final class DisplayMonitor: @unchecked Sendable {
         return cfString as String
     }
 
-    /// Returns the human-readable product name via IOKit.
+    /// Returns the human-readable product name via NSScreen.
     func displayName(for displayID: CGDirectDisplayID) -> String {
-        var serialPortIterator = io_iterator_t()
-        let matching = IOServiceMatching("IODisplayConnect")
-
-        let result = IOServiceGetMatchingServices(kIOMainPortDefault, matching, &serialPortIterator)
-        guard result == KERN_SUCCESS else {
-            Self.logger.warning("IOServiceGetMatchingServices failed for display \(displayID)")
-            return "External Display"
-        }
-        defer { IOObjectRelease(serialPortIterator) }
-
-        var service = IOIteratorNext(serialPortIterator)
-        while service != IO_OBJECT_NULL {
-            defer {
-                IOObjectRelease(service)
-                service = IOIteratorNext(serialPortIterator)
-            }
-
-            guard let info = IODisplayCreateInfoDictionary(service, IOOptionBits(kIODisplayOnlyPreferredName))?.takeRetainedValue() as? [String: Any] else {
-                continue
-            }
-
-            // Match by vendor and product ID
-            guard let vendorID = info[kDisplayVendorID] as? UInt32,
-                  let productID = info[kDisplayProductID] as? UInt32 else {
-                continue
-            }
-
-            if vendorID == CGDisplayVendorNumber(displayID),
-               productID == CGDisplayModelNumber(displayID) {
-                if let names = info[kDisplayProductName] as? [String: String],
-                   let name = names.values.first {
-                    return name
-                }
+        for screen in NSScreen.screens {
+            let screenID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
+            if screenID == displayID {
+                return screen.localizedName
             }
         }
-
-        Self.logger.notice("No IOKit product name found for display \(displayID), using fallback")
+        Self.logger.notice("No NSScreen match for display \(displayID), using fallback")
         return "External Display"
     }
 }

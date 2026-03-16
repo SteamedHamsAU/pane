@@ -94,12 +94,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     ) {
         DisplayConfigurator.apply(config, primaryID: CGMainDisplayID(), externalID: displayID)
 
-        if config.rememberThisDisplay {
-            var savedConfig = config
-            savedConfig.displayName = name
-            configStore.save(savedConfig, for: uuid)
-            Self.logger.notice("Saved config for \(name) [\(uuid)]")
-        }
+        // Always save the config so the display appears in Settings.
+        // rememberThisDisplay controls whether to auto-apply silently next time.
+        var savedConfig = config
+        savedConfig.displayName = name
+        let nativeW = CGDisplayPixelsWide(displayID)
+        let nativeH = CGDisplayPixelsHigh(displayID)
+        savedConfig.resolutionWidth = nativeW
+        savedConfig.resolutionHeight = nativeH
+        let physicalSize = CGDisplayScreenSize(displayID)
+        let diagonalInches = sqrt(physicalSize.width * physicalSize.width + physicalSize.height * physicalSize.height) / 25.4
+        savedConfig.screenSizeInches = Int(diagonalInches.rounded())
+        configStore.save(savedConfig, for: uuid)
+        Self.logger.notice("Saved config for \(name) [\(uuid)] (auto-apply: \(config.rememberThisDisplay))")
 
         currentDisplay = ConnectedDisplay(
             id: displayID, uuid: uuid, name: name, resolution: resolution, appliedConfig: config
@@ -129,8 +136,8 @@ extension AppDelegate: DisplayMonitorDelegate {
     ) {
         Self.logger.notice("Display connected: \(name) [\(uuid)]")
 
-        if let savedConfig = configStore.configuration(for: uuid) {
-            // Known display — apply silently
+        if let savedConfig = configStore.configuration(for: uuid), savedConfig.rememberThisDisplay {
+            // Known display with auto-apply — apply silently
             DisplayConfigurator.apply(savedConfig, primaryID: CGMainDisplayID(), externalID: id)
             currentDisplay = ConnectedDisplay(
                 id: id, uuid: uuid, name: name, resolution: resolution, appliedConfig: savedConfig
@@ -158,7 +165,7 @@ extension AppDelegate: DisplayMonitorDelegate {
                 }
             }
         } else {
-            // Unknown display — show prompt
+            // Unknown display or known but not auto-apply — show prompt
             currentDisplay = ConnectedDisplay(
                 id: id, uuid: uuid, name: name, resolution: resolution, appliedConfig: nil
             )
