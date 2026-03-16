@@ -1,0 +1,80 @@
+name: CI (main)
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: Build, Test & Archive
+    runs-on: macos-15
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.app
+
+      - name: Install tools
+        run: brew install xcodegen xcbeautify swiftlint
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: SwiftFormat check
+        run: swiftformat --lint Sources/ Tests/
+
+      - name: SwiftLint
+        run: swiftlint lint --strict Sources/ Tests/
+
+      - name: Build (Debug)
+        run: |
+          xcodebuild build \
+            -scheme Pane \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcbeautify
+
+      - name: Build (Release)
+        run: |
+          xcodebuild build \
+            -scheme Pane \
+            -configuration Release \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcbeautify
+
+      - name: Test
+        run: |
+          xcodebuild test \
+            -scheme Pane \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcbeautify
+
+      - name: Archive (Debug)
+        run: |
+          xcodebuild archive \
+            -scheme Pane \
+            -configuration Debug \
+            -archivePath build/Pane-debug.xcarchive \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcbeautify
+
+      - name: Upload debug archive artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pane-debug-${{ github.sha }}
+          path: build/Pane-debug.xcarchive
+          retention-days: 14
