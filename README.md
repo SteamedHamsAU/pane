@@ -52,8 +52,10 @@ Sources/Pane/
 
 ## Distribution
 
-Direct download with Sparkle auto-updates. Not distributed via the App Store.
+Direct download with Sparkle auto-updates.
 
 ## License
 
-TBD
+Pane is released under the [MIT License](LICENSE).
+
+Copyright (c) 2026 Steamed Hams Pty Ltd

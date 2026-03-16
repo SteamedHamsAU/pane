@@ -159,10 +159,29 @@ struct SettingsView: View {
                 #endif
             }
 
-            Button("Check for Updates…") {
-                checkForUpdates()
+            VStack(spacing: 4) {
+                Text("Copyright © 2026 Steamed Hams Pty Ltd")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+
+                Text("Licensed under the MIT License")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
             }
-            .controlSize(.regular)
+
+            HStack(spacing: 12) {
+                Button("Check for Updates…") {
+                    checkForUpdates()
+                }
+                .controlSize(.regular)
+
+                Button("Source Code") {
+                    if let url = URL(string: "https://github.com/SteamedHamsAU/pane") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+                .controlSize(.regular)
+            }
 
             Spacer()
         }
