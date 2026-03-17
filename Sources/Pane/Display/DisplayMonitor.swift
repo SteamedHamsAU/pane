@@ -62,8 +62,10 @@ final class DisplayMonitor: @unchecked Sendable {
 
     func handleReconfiguration(displayID: CGDirectDisplayID, flags: CGDisplayChangeSummaryFlags) {
         // Log all events for debugging
-        // swiftformat:disable:next wrap
-        Self.logger.notice("Reconfiguration event: display=\(displayID) flags=\(flags.rawValue) add=\(flags.contains(.addFlag)) builtin=\(CGDisplayIsBuiltin(displayID)) mirror=\(CGDisplayIsInMirrorSet(displayID))")
+        Self.logger.notice(
+            // swiftformat:disable:next wrap
+            "Reconfiguration event: display=\(displayID) flags=\(flags.rawValue) add=\(flags.contains(.addFlag)) builtin=\(CGDisplayIsBuiltin(displayID)) mirror=\(CGDisplayIsInMirrorSet(displayID))"
+        )
 
         guard flags.contains(.addFlag) else { return }
         guard !CGDisplayIsBuiltin(displayID).boolValue else { return }
