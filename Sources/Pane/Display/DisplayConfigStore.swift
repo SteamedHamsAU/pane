@@ -5,7 +5,6 @@ import Foundation
 /// Storage: `~/Library/Application Support/Pane/displays.plist`
 @MainActor
 final class DisplayConfigStore {
-
     private var configurations: [String: DisplayConfiguration] = [:]
     private let fileURL: URL
 

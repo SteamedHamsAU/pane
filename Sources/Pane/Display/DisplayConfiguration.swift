@@ -2,7 +2,6 @@ import Foundation
 
 /// Model representing a saved display arrangement configuration.
 struct DisplayConfiguration: Codable, Sendable {
-
     enum Mode: String, Codable, Sendable {
         case extend
         case mirror

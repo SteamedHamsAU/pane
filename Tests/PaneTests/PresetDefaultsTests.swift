@@ -1,10 +1,9 @@
 import Foundation
-import Testing
 @testable import Pane
+import Testing
 
 @Suite("PresetDefaults")
 struct PresetDefaultsTests {
-
     private func makeSuite(name: String = #function) -> UserDefaults {
         let suite = UserDefaults(suiteName: "PresetDefaultsTests.\(name)")!
         suite.removePersistentDomain(forName: "PresetDefaultsTests.\(name)")

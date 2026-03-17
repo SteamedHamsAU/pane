@@ -2,7 +2,6 @@ import SwiftUI
 
 /// Mirror mode tab: two option cards for mirror target selection.
 struct MirrorView: View {
-
     @Binding var selectedMirrorTarget: DisplayConfiguration.MirrorTarget
 
     var body: some View {
@@ -24,7 +23,11 @@ struct MirrorView: View {
                     .frame(width: 200, height: 140)
                     .background(
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(selectedMirrorTarget == target ? Color.accentColor.opacity(0.12) : Color.secondary.opacity(0.08))
+                            .fill(
+                                selectedMirrorTarget == target
+                                    ? Color.accentColor.opacity(0.12)
+                                    : Color.secondary.opacity(0.08)
+                            )
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
@@ -66,8 +69,8 @@ struct MirrorDiagram: View {
             )
 
             let activeColor: Color = isSelected ? .accentColor : .secondary
-            let dimmedOpacity: Double = 0.25
-            let activeOpacity: Double = 0.6
+            let dimmedOpacity = 0.25
+            let activeOpacity = 0.6
 
             switch target {
             case .macBook:

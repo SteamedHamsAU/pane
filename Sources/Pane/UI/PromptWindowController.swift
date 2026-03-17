@@ -7,13 +7,10 @@ import SwiftUI
 /// stealing focus from the current app.
 @MainActor
 final class PromptWindowController {
-
     private var panel: NSPanel?
 
     /// Show the prompt for a newly connected display.
     func show(
-        displayID: CGDirectDisplayID,
-        uuid: String,
         name: String,
         resolution: CGSize,
         onApply: @escaping (DisplayConfiguration) -> Void,
@@ -84,7 +81,8 @@ final class PromptWindowController {
     /// Find the built-in MacBook display.
     private func builtInScreen() -> NSScreen? {
         NSScreen.screens.first { screen in
-            guard let screenNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID else {
+            let key = NSDeviceDescriptionKey("NSScreenNumber")
+            guard let screenNumber = screen.deviceDescription[key] as? CGDirectDisplayID else {
                 return false
             }
             return CGDisplayIsBuiltin(screenNumber) != 0

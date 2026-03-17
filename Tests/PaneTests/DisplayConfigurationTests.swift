@@ -1,9 +1,8 @@
-import Testing
 @testable import Pane
+import Testing
 
 @Suite("DisplayConfiguration Model")
 struct DisplayConfigurationTests {
-
     @Test("Encoding and decoding preserves all fields")
     func roundTrip() throws {
         let config = DisplayConfiguration(
@@ -46,7 +45,6 @@ struct DisplayConfigurationTests {
 
     @Suite("Mode")
     struct ModeTests {
-
         @Test("extend encodes and decodes correctly")
         func extendRoundTrip() throws {
             let config = DisplayConfiguration(
@@ -84,7 +82,6 @@ struct DisplayConfigurationTests {
 
     @Suite("ExtendPreset")
     struct ExtendPresetTests {
-
         @Test("all values encode and decode correctly", arguments: DisplayConfiguration.ExtendPreset.allCases)
         func encodeDecode(_ preset: DisplayConfiguration.ExtendPreset) throws {
             let config = DisplayConfiguration(
@@ -119,7 +116,6 @@ struct DisplayConfigurationTests {
 
     @Suite("MirrorTarget")
     struct MirrorTargetTests {
-
         @Test("all values encode and decode correctly", arguments: DisplayConfiguration.MirrorTarget.allCases)
         func encodeDecode(_ target: DisplayConfiguration.MirrorTarget) throws {
             let config = DisplayConfiguration(

@@ -2,7 +2,6 @@ import SwiftUI
 
 /// Canvas-rendered diagram showing a display arrangement preset.
 struct ExtendPresetDiagram: View {
-
     let preset: DisplayConfiguration.ExtendPreset
     let isSelected: Bool
 

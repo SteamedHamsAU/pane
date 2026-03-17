@@ -4,7 +4,6 @@ import UserNotifications
 /// Shows native macOS notifications for known-display auto-apply events.
 @MainActor
 final class ToastWindowController: NSObject, UNUserNotificationCenterDelegate {
-
     private var onChangeTapped: (() -> Void)?
     private static let categoryID = "DISPLAY_APPLIED"
     private static let changeActionID = "CHANGE_ACTION"
@@ -47,8 +46,10 @@ final class ToastWindowController: NSObject, UNUserNotificationCenterDelegate {
         content.sound = .default
         content.categoryIdentifier = Self.categoryID
 
+        let identifier = UUID().uuidString
+
         let request = UNNotificationRequest(
-            identifier: UUID().uuidString,
+            identifier: identifier,
             content: content,
             trigger: nil
         )
@@ -56,6 +57,18 @@ final class ToastWindowController: NSObject, UNUserNotificationCenterDelegate {
         UNUserNotificationCenter.current().add(request) { error in
             if let error {
                 print("Failed to add notification: \(error)")
+                return
+            }
+
+            guard duration > 0 else {
+                return
+            }
+
+            Task.detached {
+                let nanoseconds = UInt64(max(duration, 0) * 1_000_000_000)
+                try? await Task.sleep(nanoseconds: nanoseconds)
+                UNUserNotificationCenter.current()
+                    .removeDeliveredNotifications(withIdentifiers: [identifier])
             }
         }
     }
@@ -64,17 +77,17 @@ final class ToastWindowController: NSObject, UNUserNotificationCenterDelegate {
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
     }
 
-    // Show banner even when app is in foreground
+    /// Show banner even when app is in foreground
     nonisolated func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        willPresent notification: UNNotification
+        _: UNUserNotificationCenter,
+        willPresent _: UNNotification
     ) async -> UNNotificationPresentationOptions {
         [.banner, .sound]
     }
 
-    // Handle "Change" action
+    /// Handle "Change" action
     nonisolated func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
+        _: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
         if response.actionIdentifier == Self.changeActionID {

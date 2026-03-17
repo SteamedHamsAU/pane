@@ -5,7 +5,6 @@ import Sparkle
 /// Central coordinator: sets up menu bar, display monitoring, and Sparkle updates.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-
     private var menuBarController: MenuBarController?
     private var displayMonitor: DisplayMonitor?
     private var promptController: PromptWindowController?
@@ -25,7 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         category: "AppDelegate"
     )
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
+    func applicationDidFinishLaunching(_: Notification) {
         // Menu bar
         let menuBar = MenuBarController(configStore: configStore)
         menuBar.onRetriggerPrompt = { [weak self] in
@@ -59,7 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Self.logger.notice("Pane started")
     }
 
-    func applicationWillTerminate(_ notification: Notification) {
+    func applicationWillTerminate(_: Notification) {
         displayMonitor?.stopMonitoring()
     }
 
@@ -72,8 +71,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         resolution: CGSize
     ) {
         promptController?.show(
-            displayID: displayID,
-            uuid: uuid,
             name: name,
             resolution: resolution,
             onApply: { [weak self] config in
@@ -103,7 +100,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         savedConfig.resolutionWidth = nativeW
         savedConfig.resolutionHeight = nativeH
         let physicalSize = CGDisplayScreenSize(displayID)
-        let diagonalInches = sqrt(physicalSize.width * physicalSize.width + physicalSize.height * physicalSize.height) / 25.4
+        let diagonalInches = sqrt(
+            physicalSize.width * physicalSize.width + physicalSize.height * physicalSize.height
+        ) / 25.4
         savedConfig.screenSizeInches = Int(diagonalInches.rounded())
         configStore.save(savedConfig, for: uuid)
         Self.logger.notice("Saved config for \(name) [\(uuid)] (auto-apply: \(config.rememberThisDisplay))")
@@ -144,7 +143,16 @@ extension AppDelegate: DisplayMonitorDelegate {
             )
             menuBarController?.updateCurrentDisplay(currentDisplay)
 
-            let modeLabel = "\(savedConfig.mode.displayName.lowercased()) \(savedConfig.extendPreset.displayName.lowercased())"
+            let modeName = savedConfig.mode.displayName.lowercased()
+            let modeLabel: String
+            switch savedConfig.mode {
+            case .extend:
+                let presetName = savedConfig.extendPreset.displayName.lowercased()
+                modeLabel = "\(modeName) \(presetName)"
+            case .mirror:
+                let targetName = savedConfig.mirrorTarget.displayName.lowercased()
+                modeLabel = "\(modeName) \(targetName)"
+            }
             Self.logger.notice("Applied saved config: \(modeLabel)")
 
             // Show toast after a brief delay — the display reconfiguration

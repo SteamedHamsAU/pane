@@ -1,15 +1,16 @@
-import SwiftUI
 import AppKit
 import ServiceManagement
+import SwiftUI
 
 @MainActor
 struct SettingsView: View {
-
     let configStore: DisplayConfigStore
     let checkForUpdates: () -> Void
 
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
-    @State private var showNotification = UserDefaults.standard.object(forKey: "showToastOnKnownDisplay") as? Bool ?? true
+    @State private var showNotification = UserDefaults.standard.object(
+        forKey: "showToastOnKnownDisplay"
+    ) as? Bool ?? true
     @State private var entries: [(uuid: String, config: DisplayConfiguration)] = []
     @State private var settingsWindowBox = WeakWindowBox()
     @State private var settingsWindowID: ObjectIdentifier?
@@ -103,8 +104,10 @@ struct SettingsView: View {
                                     if let size = entry.config.screenSizeInches {
                                         parts.append("\(size)″")
                                     }
-                                    if let w = entry.config.resolutionWidth, let h = entry.config.resolutionHeight {
-                                        parts.append("(\(w) × \(h))")
+                                    if let width = entry.config.resolutionWidth {
+                                        if let height = entry.config.resolutionHeight {
+                                            parts.append("(\(width) × \(height))")
+                                        }
                                     }
                                     return parts.joined(separator: " ")
                                 }()
@@ -114,7 +117,8 @@ struct SettingsView: View {
                                     let preset = entry.config.mode == .mirror
                                         ? entry.config.mirrorTarget.displayName
                                         : entry.config.extendPreset.displayName
-                                    Text("\(entry.config.mode.displayName) · \(preset)\(entry.config.rememberThisDisplay ? "" : " · Prompt")")
+                                    let rememberSuffix = entry.config.rememberThisDisplay ? "" : " · Prompt"
+                                    Text("\(entry.config.mode.displayName) · \(preset)\(rememberSuffix)")
                                 }
                                 .font(.system(size: 11))
                                 .foregroundStyle(.secondary)
@@ -165,12 +169,12 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
 
                 #if DEV_BUILD
-                Text("Dev")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(.orange))
+                    Text("Dev")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(.orange))
                 #endif
             }
 
@@ -222,7 +226,7 @@ private final class WindowReaderView: NSView {
 private struct WindowReader: NSViewRepresentable {
     @Binding var window: NSWindow?
 
-    func makeNSView(context: Context) -> WindowReaderView {
+    func makeNSView(context _: Context) -> WindowReaderView {
         let view = WindowReaderView()
         view.onWindowChange = { [weak view] newWindow in
             guard view != nil else { return }
@@ -233,7 +237,7 @@ private struct WindowReader: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: WindowReaderView, context: Context) {
+    func updateNSView(_: WindowReaderView, context _: Context) {
         // No-op: window changes are handled via viewDidMoveToWindow.
     }
 }

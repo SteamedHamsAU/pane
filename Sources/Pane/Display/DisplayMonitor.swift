@@ -20,7 +20,6 @@ protocol DisplayMonitorDelegate: AnyObject {
 /// The CGDisplay callback arrives on an arbitrary thread — this class dispatches
 /// all delegate calls to `@MainActor`.
 final class DisplayMonitor: @unchecked Sendable {
-
     @MainActor weak var delegate: DisplayMonitorDelegate?
 
     private static let logger = Logger(
@@ -30,9 +29,7 @@ final class DisplayMonitor: @unchecked Sendable {
 
     /// The C callback for `CGDisplayRegisterReconfigurationCallback`.
     /// Bridges to the Swift instance via an `Unmanaged` pointer in `userInfo`.
-    private static let reconfigurationCallback: CGDisplayReconfigurationCallBack = {
-        displayID, flags, userInfo in
-
+    private static let reconfigurationCallback: CGDisplayReconfigurationCallBack = { displayID, flags, userInfo in
         guard let userInfo else { return }
         let monitor = Unmanaged<DisplayMonitor>.fromOpaque(userInfo).takeUnretainedValue()
         monitor.handleReconfiguration(displayID: displayID, flags: flags)
@@ -64,7 +61,11 @@ final class DisplayMonitor: @unchecked Sendable {
 
     func handleReconfiguration(displayID: CGDirectDisplayID, flags: CGDisplayChangeSummaryFlags) {
         // Log all events for debugging
-        Self.logger.notice("Reconfiguration event: display=\(displayID) flags=\(flags.rawValue) add=\(flags.contains(.addFlag)) builtin=\(CGDisplayIsBuiltin(displayID)) mirror=\(CGDisplayIsInMirrorSet(displayID))")
+        Self.logger.notice(
+            // swiftformat:disable:next wrap
+            // swiftlint:disable:next line_length
+            "Reconfiguration event: display=\(displayID) flags=\(flags.rawValue) add=\(flags.contains(.addFlag)) builtin=\(CGDisplayIsBuiltin(displayID)) mirror=\(CGDisplayIsInMirrorSet(displayID))"
+        )
 
         guard flags.contains(.addFlag) else { return }
         guard !CGDisplayIsBuiltin(displayID).boolValue else { return }
@@ -77,7 +78,9 @@ final class DisplayMonitor: @unchecked Sendable {
         let bounds = CGDisplayBounds(displayID)
         let resolution = bounds.size
 
-        Self.logger.notice("External display connected: \(name) [\(uuid)] \(Int(resolution.width))×\(Int(resolution.height))")
+        Self.logger.notice(
+            "External display connected: \(name) [\(uuid)] \(Int(resolution.width))×\(Int(resolution.height))"
+        )
 
         Task { @MainActor in
             self.delegate?.displayDidConnect(
@@ -120,5 +123,7 @@ final class DisplayMonitor: @unchecked Sendable {
 // MARK: - Boolean bridging for CGDisplay queries
 
 private extension boolean_t {
-    var boolValue: Bool { self != 0 }
+    var boolValue: Bool {
+        self != 0
+    }
 }

@@ -2,7 +2,6 @@ import SwiftUI
 
 /// Root SwiftUI view for the display configuration prompt.
 struct PromptView: View {
-
     let displayName: String
     let resolution: CGSize
     let onApply: (DisplayConfiguration) -> Void

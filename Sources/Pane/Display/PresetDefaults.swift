@@ -5,7 +5,6 @@ import Foundation
 ///
 /// See pane-spec Section 3 — Last-used preset.
 struct PresetDefaults {
-
     // MARK: - Keys
 
     enum Key {
@@ -27,7 +26,8 @@ struct PresetDefaults {
     var lastExtendPreset: DisplayConfiguration.ExtendPreset {
         get {
             guard let raw = defaults.string(forKey: Key.lastExtendPreset),
-                  let value = DisplayConfiguration.ExtendPreset(rawValue: raw) else {
+                  let value = DisplayConfiguration.ExtendPreset(rawValue: raw)
+            else {
                 return .externalRight
             }
             return value
@@ -41,7 +41,8 @@ struct PresetDefaults {
     var lastMirrorTarget: DisplayConfiguration.MirrorTarget {
         get {
             guard let raw = defaults.string(forKey: Key.lastMirrorTarget),
-                  let value = DisplayConfiguration.MirrorTarget(rawValue: raw) else {
+                  let value = DisplayConfiguration.MirrorTarget(rawValue: raw)
+            else {
                 return .macBook
             }
             return value

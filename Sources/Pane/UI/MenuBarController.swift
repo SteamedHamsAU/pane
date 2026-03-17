@@ -3,7 +3,6 @@ import AppKit
 /// Manages the menu bar status item and its dynamic menu.
 @MainActor
 final class MenuBarController: NSObject, NSMenuDelegate {
-
     private var statusItem: NSStatusItem?
     private let configStore: DisplayConfigStore
     private var currentDisplay: ConnectedDisplay?
@@ -38,11 +37,10 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
         // Current display status
         if let display = currentDisplay {
-            let statusText: String
-            if let config = display.appliedConfig {
-                statusText = "\(display.name) · \(config.mode.displayName) \(config.extendPreset.displayName)"
+            let statusText = if let config = display.appliedConfig {
+                "\(display.name) · \(config.mode.displayName)"
             } else {
-                statusText = "\(display.name) · connected"
+                "\(display.name) · connected"
             }
             let statusItem = NSMenuItem(title: statusText, action: nil, keyEquivalent: "")
             statusItem.isEnabled = false
@@ -57,19 +55,52 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
         // Option-only: Re-trigger prompt
         if optionHeld {
-            let retrigger = NSMenuItem(title: "Re-trigger prompt", action: #selector(retriggerPrompt), keyEquivalent: "")
-            retrigger.target = self
-            retrigger.isEnabled = currentDisplay != nil
-            menu.addItem(retrigger)
-
-            let testNotif = NSMenuItem(title: "Test notification", action: #selector(testNotification), keyEquivalent: "")
-            testNotif.target = self
-            menu.addItem(testNotif)
-
-            menu.addItem(.separator())
+            addDebugItems(to: menu)
         }
 
         // Remembered displays submenu
+        menu.addItem(buildRememberedDisplaysItem())
+
+        // Open Settings
+        let settings = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        settings.target = self
+        menu.addItem(settings)
+
+        menu.addItem(.separator())
+
+        // Option-only: build number
+        if optionHeld {
+            addVersionItem(to: menu)
+        }
+
+        // Quit
+        let quit = NSMenuItem(title: "Quit Pane", action: #selector(quitApp), keyEquivalent: "q")
+        quit.target = self
+        menu.addItem(quit)
+    }
+
+    private func addDebugItems(to menu: NSMenu) {
+        let retrigger = NSMenuItem(
+            title: "Re-trigger prompt",
+            action: #selector(retriggerPrompt),
+            keyEquivalent: ""
+        )
+        retrigger.target = self
+        retrigger.isEnabled = currentDisplay != nil
+        menu.addItem(retrigger)
+
+        let testNotif = NSMenuItem(
+            title: "Test notification",
+            action: #selector(testNotification),
+            keyEquivalent: ""
+        )
+        testNotif.target = self
+        menu.addItem(testNotif)
+
+        menu.addItem(.separator())
+    }
+
+    private func buildRememberedDisplaysItem() -> NSMenuItem {
         let rememberedItem = NSMenuItem(title: "Remembered displays", action: nil, keyEquivalent: "")
         let submenu = NSMenu()
         let entries = configStore.allEntries()
@@ -83,43 +114,39 @@ final class MenuBarController: NSObject, NSMenuDelegate {
                 if let size = entry.config.screenSizeInches {
                     parts.append("\(size)″")
                 }
-                let label = "\(parts.joined(separator: " ")) · \(entry.config.mode.displayName) \(entry.config.extendPreset.displayName)"
+                let modeDisplay = entry.config.mode.displayName
+                let presetDisplay = switch entry.config.mode {
+                case .extend: entry.config.extendPreset.displayName
+                case .mirror: entry.config.mirrorTarget.displayName
+                }
+                let label = "\(parts.joined(separator: " ")) · \(modeDisplay) \(presetDisplay)"
                 let item = NSMenuItem(title: label, action: nil, keyEquivalent: "")
                 item.isEnabled = false
                 submenu.addItem(item)
             }
         }
         rememberedItem.submenu = submenu
-        menu.addItem(rememberedItem)
+        return rememberedItem
+    }
 
-        // Open Settings
-        let settings = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
-        settings.target = self
-        menu.addItem(settings)
+    private func addVersionItem(to menu: NSMenu) {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+        let devSuffix: String
+        #if DEV_BUILD
+            devSuffix = " (Dev)"
+        #else
+            devSuffix = ""
+        #endif
+        let versionItem = NSMenuItem(
+            title: "v\(version) build \(build)\(devSuffix)",
+            action: nil,
+            keyEquivalent: ""
+        )
+        versionItem.isEnabled = false
+        menu.addItem(versionItem)
 
         menu.addItem(.separator())
-
-        // Option-only: build number
-        if optionHeld {
-            let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
-            let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
-            let devSuffix: String
-            #if DEV_BUILD
-            devSuffix = " (Dev)"
-            #else
-            devSuffix = ""
-            #endif
-            let versionItem = NSMenuItem(title: "v\(version) build \(build)\(devSuffix)", action: nil, keyEquivalent: "")
-            versionItem.isEnabled = false
-            menu.addItem(versionItem)
-
-            menu.addItem(.separator())
-        }
-
-        // Quit
-        let quit = NSMenuItem(title: "Quit Pane", action: #selector(quitApp), keyEquivalent: "q")
-        quit.target = self
-        menu.addItem(quit)
     }
 
     // MARK: - Actions

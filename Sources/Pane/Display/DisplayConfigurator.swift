@@ -8,7 +8,6 @@ import os
 /// and safe to call from the main thread).
 @MainActor
 enum DisplayConfigurator {
-
     private static let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "au.steamedhams.pane",
         category: "DisplayConfigurator"
@@ -36,21 +35,19 @@ enum DisplayConfigurator {
 
             let internalBounds = CGDisplayBounds(primaryID)
             let externalBounds = CGDisplayBounds(externalID)
-            let origin: CGPoint
-
-            switch config.extendPreset {
+            let origin = switch config.extendPreset {
             case .externalRight:
-                origin = CGPoint(
+                CGPoint(
                     x: internalBounds.maxX,
                     y: internalBounds.midY - externalBounds.height / 2
                 )
             case .externalLeft:
-                origin = CGPoint(
+                CGPoint(
                     x: internalBounds.minX - externalBounds.width,
                     y: internalBounds.midY - externalBounds.height / 2
                 )
             case .externalAbove:
-                origin = CGPoint(
+                CGPoint(
                     x: internalBounds.midX - externalBounds.width / 2,
                     y: internalBounds.minY - externalBounds.height
                 )

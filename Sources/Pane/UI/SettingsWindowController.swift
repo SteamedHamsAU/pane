@@ -1,11 +1,10 @@
 import AppKit
-import SwiftUI
 import Sparkle
+import SwiftUI
 
 /// Controls the settings window opened from the menu bar.
 @MainActor
 final class SettingsWindowController {
-
     private var window: NSWindow?
     private let configStore: DisplayConfigStore
     private let updaterController: SPUStandardUpdaterController
