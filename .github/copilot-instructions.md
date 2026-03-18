@@ -67,3 +67,24 @@
 - Models: `ModelName.swift`
 - Services/Monitors: `DomainMonitor.swift`, `DomainStore.swift`
 - Extensions: `Type+Domain.swift`
+
+## Build & Run
+
+After making code changes, always build and verify. Kill existing instances before re-launching.
+
+```bash
+# Regenerate Xcode project from project.yml (if project.yml changed)
+xcodegen generate
+
+# Build
+xcodebuild -project Pane.xcodeproj -scheme Pane -configuration Debug build
+
+# Run (kill existing first)
+pkill -x Pane 2>/dev/null; sleep 0.5
+open "$(xcodebuild -project Pane.xcodeproj -scheme Pane -configuration Debug -showBuildSettings 2>/dev/null | grep ' BUILT_PRODUCTS_DIR' | awk '{print $3}')/Pane.app"
+
+# Tests
+xcodebuild -project Pane.xcodeproj -scheme Pane -configuration Debug test
+```
+
+For display-related changes, remind Luke to plug/unplug an external display to test detection.
