@@ -24,7 +24,7 @@ final class DisplayMonitor: @unchecked Sendable {
     @MainActor weak var delegate: DisplayMonitorDelegate?
 
     private static let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "au.steamedhams.pane",
+        subsystem: Bundle.main.bundleIdentifier ?? "au.steamedhams.snap",
         category: "DisplayMonitor"
     )
 

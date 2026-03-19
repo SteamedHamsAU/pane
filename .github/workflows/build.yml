@@ -28,7 +28,7 @@ jobs:
       - name: Build
         run: |
           xcodebuild build-for-testing \
-            -scheme Pane \
+            -scheme Snap \
             -destination 'platform=macOS' \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
@@ -38,7 +38,7 @@ jobs:
       - name: Test
         run: |
           xcodebuild test-without-building \
-            -scheme Pane \
+            -scheme Snap \
             -destination 'platform=macOS' \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \

@@ -41,7 +41,7 @@ final class ToastWindowController: NSObject, UNUserNotificationCenterDelegate {
         self.onChangeTapped = onChangeTapped
 
         let content = UNMutableNotificationContent()
-        content.title = "Pane"
+        content.title = "Snap"
         content.body = message
         content.sound = .default
         content.categoryIdentifier = Self.categoryID

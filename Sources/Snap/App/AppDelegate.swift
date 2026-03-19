@@ -20,7 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     )
 
     private static let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "au.steamedhams.pane",
+        subsystem: Bundle.main.bundleIdentifier ?? "au.steamedhams.snap",
         category: "AppDelegate"
     )
 
@@ -58,7 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Scan for displays already connected at launch
         scanForConnectedDisplays()
 
-        Self.logger.notice("Pane started")
+        Self.logger.notice("Snap started")
     }
 
     func applicationWillTerminate(_: Notification) {

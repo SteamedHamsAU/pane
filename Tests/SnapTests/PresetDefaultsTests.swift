@@ -1,5 +1,5 @@
 import Foundation
-@testable import Pane
+@testable import Snap
 import Testing
 
 @Suite("PresetDefaults")

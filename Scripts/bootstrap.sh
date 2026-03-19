@@ -14,4 +14,4 @@ echo "→ Opening in VSCode..."
 code .
 
 echo ""
-echo "✓ Ready. Open Pane.xcodeproj in Xcode once to set your Team ID under Signing & Capabilities."
+echo "✓ Ready. Open Snap.xcodeproj in Xcode once to set your Team ID under Signing & Capabilities."

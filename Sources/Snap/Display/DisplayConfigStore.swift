@@ -2,7 +2,7 @@ import Foundation
 
 /// Persists display configurations keyed by display UUID.
 ///
-/// Storage: `~/Library/Application Support/Pane/displays.plist`
+/// Storage: `~/Library/Application Support/Snap/displays.plist`
 @MainActor
 final class DisplayConfigStore {
     private var configurations: [String: DisplayConfiguration] = [:]
@@ -10,11 +10,11 @@ final class DisplayConfigStore {
 
     init() {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let paneDir = appSupport.appendingPathComponent("Pane", isDirectory: true)
-        fileURL = paneDir.appendingPathComponent("displays.plist")
+        let snapDir = appSupport.appendingPathComponent("Snap", isDirectory: true)
+        fileURL = snapDir.appendingPathComponent("displays.plist")
 
         // Ensure directory exists
-        try? FileManager.default.createDirectory(at: paneDir, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: snapDir, withIntermediateDirectories: true)
 
         // Load existing configurations
         load()

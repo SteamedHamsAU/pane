@@ -1,4 +1,4 @@
-# Copilot Instructions — Pane
+# Copilot Instructions — Snap
 
 ## Platform & Language
 - macOS 15+ only. No iOS, watchOS, or widget targets.
@@ -8,7 +8,7 @@
 
 ## Architecture
 - AppKit + SwiftUI hybrid. The app uses `NSApplicationDelegate`, `NSStatusItem`, `NSPanel`, and `NSHostingView` to host SwiftUI views.
-- No pure SwiftUI `@main App` lifecycle — the entry point is `PaneApp.swift` using `@main` with `NSApplicationMain`.
+- No pure SwiftUI `@main App` lifecycle — the entry point is `SnapApp.swift` using `@main` with `NSApplicationMain`.
 - Mark all UI and display-related code `@MainActor`.
 - Business logic in `Display/` directory as structs or actors.
 - No singletons. Dependency injection via initialiser parameters or `@Environment`.
@@ -29,7 +29,7 @@
 - Use SwiftUI `Canvas` for preset diagrams (not image assets).
 
 ## Persistence
-- `DisplayConfigStore` persists to `~/Library/Application Support/Pane/displays.plist`.
+- `DisplayConfigStore` persists to `~/Library/Application Support/Snap/displays.plist`.
 - Keyed by display UUID string from `CGDisplayCreateUUIDRef`.
 - Last-used presets stored in `UserDefaults` (`lastExtendPreset`, `lastMirrorTarget`).
 - No SwiftData, no CoreData, no CloudKit.
@@ -77,14 +77,14 @@ After making code changes, always build and verify. Kill existing instances befo
 xcodegen generate
 
 # Build
-xcodebuild -project Pane.xcodeproj -scheme Pane -configuration Debug build
+xcodebuild -project Snap.xcodeproj -scheme Snap -configuration Debug build
 
 # Run (kill existing first)
-pkill -x Pane 2>/dev/null; sleep 0.5
-open "$(xcodebuild -project Pane.xcodeproj -scheme Pane -configuration Debug -showBuildSettings 2>/dev/null | grep ' BUILT_PRODUCTS_DIR' | awk '{print $3}')/Pane.app"
+pkill -x Snap 2>/dev/null; sleep 0.5
+open "$(xcodebuild -project Snap.xcodeproj -scheme Snap -configuration Debug -showBuildSettings 2>/dev/null | grep ' BUILT_PRODUCTS_DIR' | awk '{print $3}')/Snap.app"
 
 # Tests
-xcodebuild -project Pane.xcodeproj -scheme Pane -configuration Debug test
+xcodebuild -project Snap.xcodeproj -scheme Snap -configuration Debug test
 ```
 
 For display-related changes, remind Luke to plug/unplug an external display to test detection.

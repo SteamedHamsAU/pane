@@ -18,7 +18,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     func setup() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = statusItem?.button {
-            button.image = NSImage(systemSymbolName: "display", accessibilityDescription: "Pane")
+            button.image = NSImage(systemSymbolName: "display", accessibilityDescription: "Snap")
         }
         let menu = NSMenu()
         menu.delegate = self
@@ -74,7 +74,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         }
 
         // Quit
-        let quit = NSMenuItem(title: "Quit Pane", action: #selector(quitApp), keyEquivalent: "q")
+        let quit = NSMenuItem(title: "Quit Snap", action: #selector(quitApp), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
     }

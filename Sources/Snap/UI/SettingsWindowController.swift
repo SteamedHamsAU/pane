@@ -35,7 +35,7 @@ final class SettingsWindowController {
             backing: .buffered,
             defer: false
         )
-        window.title = "Pane Settings"
+        window.title = "Snap Settings"
         window.contentView = hostingView
         window.center()
         window.isReleasedWhenClosed = false

@@ -1,4 +1,4 @@
-name: Pane
+name: Snap
 options:
   bundleIdPrefix: au.steamedhams
   deploymentTarget:
@@ -27,48 +27,48 @@ packages:
     from: "2.0.0"
 
 targets:
-  Pane:
+  Snap:
     type: application
     platform: macOS
     sources:
-      - path: Sources/Pane
+      - path: Sources/Snap
     resources:
       - path: Resources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: au.steamedhams.pane
-        INFOPLIST_FILE: Sources/Pane/App/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: au.steamedhams.snap
+        INFOPLIST_FILE: Sources/Snap/App/Info.plist
         GENERATE_INFOPLIST_FILE: false
         COMBINE_HIDPI_IMAGES: true
     entitlements:
-      path: Config/Pane.entitlements
+      path: Config/Snap.entitlements
     configFiles:
       Debug: Config/GeneratedBuildNumber.xcconfig
       Release: Config/GeneratedBuildNumber.xcconfig
     dependencies:
       - package: Sparkle
 
-  PaneTests:
+  SnapTests:
     type: bundle.unit-test
     platform: macOS
     sources:
-      - path: Tests/PaneTests
+      - path: Tests/SnapTests
     dependencies:
-      - target: Pane
+      - target: Snap
 
 schemes:
-  Pane:
+  Snap:
     build:
       preActions:
         - script: |
             "${SRCROOT}/Scripts/set-build-number.sh"
           name: Set Build Number
-          settingsTarget: Pane
+          settingsTarget: Snap
       targets:
-        Pane: all
+        Snap: all
     run:
       config: Debug
     test:
       config: Debug
       targets:
-        - PaneTests
+        - SnapTests

@@ -35,7 +35,7 @@ jobs:
       - name: Build (Debug)
         run: |
           xcodebuild build \
-            -scheme Pane \
+            -scheme Snap \
             -configuration Debug \
             -destination 'platform=macOS' \
             CODE_SIGN_IDENTITY="-" \
@@ -46,7 +46,7 @@ jobs:
       - name: Build (Release)
         run: |
           xcodebuild build \
-            -scheme Pane \
+            -scheme Snap \
             -configuration Release \
             -destination 'platform=macOS' \
             CODE_SIGN_IDENTITY="-" \
@@ -57,7 +57,7 @@ jobs:
       - name: Test
         run: |
           xcodebuild test \
-            -scheme Pane \
+            -scheme Snap \
             -destination 'platform=macOS' \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
@@ -67,9 +67,9 @@ jobs:
       - name: Archive (Debug)
         run: |
           xcodebuild archive \
-            -scheme Pane \
+            -scheme Snap \
             -configuration Debug \
-            -archivePath build/Pane-debug.xcarchive \
+            -archivePath build/Snap-debug.xcarchive \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
@@ -78,6 +78,6 @@ jobs:
       - name: Upload debug archive artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Pane-debug-${{ github.sha }}
-          path: build/Pane-debug.xcarchive
+          name: Snap-debug-${{ github.sha }}
+          path: build/Snap-debug.xcarchive
           retention-days: 14

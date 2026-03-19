@@ -158,7 +158,7 @@ struct SettingsView: View {
                 .font(.system(size: 48, weight: .light))
                 .foregroundStyle(.secondary)
 
-            Text("Pane")
+            Text("Snap")
                 .font(.system(size: 22, weight: .semibold))
 
             HStack(spacing: 8) {
@@ -195,7 +195,7 @@ struct SettingsView: View {
                 .controlSize(.regular)
 
                 Button("Source Code") {
-                    if let url = URL(string: "https://github.com/SteamedHamsAU/pane") {
+                    if let url = URL(string: "https://github.com/SteamedHamsAU/snap") {
                         NSWorkspace.shared.open(url)
                     }
                 }

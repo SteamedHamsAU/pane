@@ -10,11 +10,11 @@
 #   ./Scripts/setup-branch-protection.sh [OWNER/REPO]
 #
 # Example:
-#   ./Scripts/setup-branch-protection.sh SteamedHamsAU/pane
+#   ./Scripts/setup-branch-protection.sh SteamedHamsAU/snap
 
 set -euo pipefail
 
-REPO="${1:-SteamedHamsAU/pane}"
+REPO="${1:-SteamedHamsAU/snap}"
 
 echo "Configuring branch protection for ${REPO}..."
 

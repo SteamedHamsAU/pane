@@ -9,7 +9,7 @@ import os
 @MainActor
 enum DisplayConfigurator {
     private static let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "au.steamedhams.pane",
+        subsystem: Bundle.main.bundleIdentifier ?? "au.steamedhams.snap",
         category: "DisplayConfigurator"
     )
 

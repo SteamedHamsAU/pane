@@ -45,9 +45,9 @@ jobs:
       - name: Archive (Release)
         run: |
           xcodebuild archive \
-            -scheme Pane \
+            -scheme Snap \
             -configuration Release \
-            -archivePath build/Pane.xcarchive \
+            -archivePath build/Snap.xcarchive \
             MARKETING_VERSION="${{ steps.version.outputs.version }}" \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
@@ -60,7 +60,7 @@ jobs:
       - name: Export app
         run: |
           xcodebuild -exportArchive \
-            -archivePath build/Pane.xcarchive \
+            -archivePath build/Snap.xcarchive \
             -exportPath build/export \
             -exportOptionsPlist Config/ExportOptions.plist \
             | xcbeautify
@@ -69,17 +69,17 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           hdiutil create \
-            -volname "Pane ${VERSION}" \
-            -srcfolder build/export/Pane.app \
+            -volname "Snap ${VERSION}" \
+            -srcfolder build/export/Snap.app \
             -ov \
             -format UDZO \
-            "build/Pane-${VERSION}.dmg"
+            "build/Snap-${VERSION}.dmg"
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Pane-${{ steps.version.outputs.version }}.dmg
-          path: build/Pane-${{ steps.version.outputs.version }}.dmg
+          name: Snap-${{ steps.version.outputs.version }}.dmg
+          path: build/Snap-${{ steps.version.outputs.version }}.dmg
 
   publish:
     name: Publish GitHub Release
@@ -97,14 +97,14 @@ jobs:
       - name: Download DMG artifact
         uses: actions/download-artifact@v4
         with:
-          name: Pane-${{ steps.version.outputs.version }}.dmg
+          name: Snap-${{ steps.version.outputs.version }}.dmg
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Pane ${{ steps.version.outputs.version }}
+          name: Snap ${{ steps.version.outputs.version }}
           tag_name: ${{ github.ref_name }}
           draft: false
           prerelease: false
-          files: Pane-${{ steps.version.outputs.version }}.dmg
+          files: Snap-${{ steps.version.outputs.version }}.dmg
           generate_release_notes: true

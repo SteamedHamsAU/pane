@@ -1,8 +1,8 @@
 import AppKit
 
-/// App entry point. Pane is a menu-bar-only app (LSUIElement = true).
+/// App entry point. Snap is a menu-bar-only app (LSUIElement = true).
 @main
-struct PaneApp {
+struct SnapApp {
     static func main() {
         let app = NSApplication.shared
         let delegate = AppDelegate()

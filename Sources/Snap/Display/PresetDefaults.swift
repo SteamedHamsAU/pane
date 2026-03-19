@@ -3,7 +3,7 @@ import Foundation
 /// Persists the last-used extend preset and mirror target in UserDefaults
 /// so the prompt can pre-select them on next open.
 ///
-/// See pane-spec Section 3 — Last-used preset.
+/// See snap-spec Section 3 — Last-used preset.
 struct PresetDefaults {
     // MARK: - Keys
 

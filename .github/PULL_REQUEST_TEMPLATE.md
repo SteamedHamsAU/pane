@@ -12,10 +12,10 @@
 
 ## Spec Reference
 
-<!-- Which section of pane-spec.md does this implement? e.g. "Section 7 — Prompt Window" -->
+<!-- Which section of snap-spec.md does this implement? e.g. "Section 7 — Prompt Window" -->
 
 ## Checklist
 
 - [ ] Builds without warnings (`xcodebuild build`)
 - [ ] Swift 6 strict concurrency clean
-- [ ] Matches pane-spec.md requirements
+- [ ] Matches snap-spec.md requirements
