@@ -24,7 +24,7 @@ struct SettingsView: View {
             aboutTab
                 .tabItem { Label("About", systemImage: "info.circle") }
         }
-        .frame(width: 460, height: 380)
+        .frame(width: 460, height: 520)
         .onAppear {
             entries = configStore.allEntries()
         }
@@ -154,9 +154,10 @@ struct SettingsView: View {
         VStack(spacing: 16) {
             Spacer()
 
-            Image(systemName: "display")
-                .font(.system(size: 48, weight: .light))
-                .foregroundStyle(.secondary)
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 256, height: 256)
 
             Text("Snap")
                 .font(.system(size: 22, weight: .semibold))

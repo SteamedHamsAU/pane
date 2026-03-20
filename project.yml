@@ -32,8 +32,8 @@ targets:
     platform: macOS
     sources:
       - path: Sources/Snap
-    resources:
       - path: Resources
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: au.steamedhams.snap

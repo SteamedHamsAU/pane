@@ -43,56 +43,26 @@ struct MirrorView: View {
     }
 }
 
-/// Canvas diagram for mirror mode showing active/dimmed displays.
+/// Diagram for mirror mode using branding assets.
 struct MirrorDiagram: View {
     let target: DisplayConfiguration.MirrorTarget
     let isSelected: Bool
 
     var body: some View {
-        Canvas { context, size in
-            let midX = size.width / 2
-            let midY = size.height / 2
-            let displaySize = CGSize(width: 48, height: 32)
-            let overlap: CGFloat = 16
+        Image(target.assetName)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .opacity(isSelected ? 1.0 : 0.5)
+            .frame(width: 120, height: 60)
+    }
+}
 
-            let backRect = CGRect(
-                x: midX - overlap / 2 - displaySize.width / 2,
-                y: midY - displaySize.height / 2 - 4,
-                width: displaySize.width,
-                height: displaySize.height
-            )
-            let frontRect = CGRect(
-                x: midX + overlap / 2 - displaySize.width / 2,
-                y: midY - displaySize.height / 2 + 4,
-                width: displaySize.width,
-                height: displaySize.height
-            )
-
-            let activeColor: Color = isSelected ? .accentColor : .secondary
-            let dimmedOpacity = 0.25
-            let activeOpacity = 0.6
-
-            switch target {
-            case .macBook:
-                // External is dimmed (back), MacBook is active (front)
-                let backPath = RoundedRectangle(cornerRadius: 3).path(in: backRect)
-                context.fill(backPath, with: .color(.secondary.opacity(dimmedOpacity)))
-                context.stroke(backPath, with: .color(.secondary.opacity(0.4)), lineWidth: 1)
-                let frontPath = RoundedRectangle(cornerRadius: 3).path(in: frontRect)
-                context.fill(frontPath, with: .color(activeColor.opacity(activeOpacity)))
-                context.stroke(frontPath, with: .color(activeColor.opacity(0.8)), lineWidth: 1.5)
-
-            case .external:
-                // MacBook is dimmed (back), external is active (front)
-                let backPath = RoundedRectangle(cornerRadius: 3).path(in: backRect)
-                context.fill(backPath, with: .color(.secondary.opacity(dimmedOpacity)))
-                context.stroke(backPath, with: .color(.secondary.opacity(0.4)), lineWidth: 1)
-                let frontPath = RoundedRectangle(cornerRadius: 3).path(in: frontRect)
-                context.fill(frontPath, with: .color(activeColor.opacity(activeOpacity)))
-                context.stroke(frontPath, with: .color(activeColor.opacity(0.8)), lineWidth: 1.5)
-            }
+private extension DisplayConfiguration.MirrorTarget {
+    var assetName: String {
+        switch self {
+        case .macBook: "MirrorMacbook"
+        case .external: "MirrorExternal"
         }
-        .frame(width: 120, height: 60)
     }
 }
 
