@@ -89,7 +89,19 @@ final class DisplayMonitor: @unchecked Sendable {
     func stopMonitoring() {
         let pointer = Unmanaged.passUnretained(self).toOpaque()
         CGDisplayRemoveReconfigurationCallback(Self.reconfigurationCallback, pointer)
+        Task { @MainActor [weak self] in
+            self?.cancelAllPendingEvents()
+        }
         Self.logger.notice("Display monitoring stopped")
+    }
+
+    /// Cancel all in-flight debounce tasks to prevent stale delegate calls.
+    @MainActor
+    private func cancelAllPendingEvents() {
+        for task in pendingEvents.values {
+            task.cancel()
+        }
+        pendingEvents.removeAll()
     }
 
     deinit {
