@@ -5,6 +5,7 @@ import SwiftUI
 @MainActor
 struct SettingsView: View {
     let configStore: DisplayConfigStore
+    let logStore: LogStore
     let checkForUpdates: () -> Void
 
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -25,11 +26,14 @@ struct SettingsView: View {
             displaysTab
                 .tabItem { Label("Displays", systemImage: "display") }
                 .tag(1)
+            DiagnosticsView(logStore: logStore)
+                .tabItem { Label("Diagnostics", systemImage: "stethoscope") }
+                .tag(2)
             aboutTab
                 .tabItem { Label("About", systemImage: "info.circle") }
-                .tag(2)
+                .tag(3)
         }
-        .frame(width: 460, height: 520)
+        .frame(width: 560, height: 520)
         .onAppear {
             entries = configStore.allEntries()
         }

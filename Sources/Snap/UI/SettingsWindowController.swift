@@ -7,10 +7,12 @@ import SwiftUI
 final class SettingsWindowController: NSObject, NSWindowDelegate {
     private var window: NSWindow?
     private let configStore: DisplayConfigStore
+    private let logStore: LogStore
     private let updaterController: SPUStandardUpdaterController
 
-    init(configStore: DisplayConfigStore, updaterController: SPUStandardUpdaterController) {
+    init(configStore: DisplayConfigStore, logStore: LogStore, updaterController: SPUStandardUpdaterController) {
         self.configStore = configStore
+        self.logStore = logStore
         self.updaterController = updaterController
         super.init()
     }
@@ -24,6 +26,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
 
         let settingsView = SettingsView(
             configStore: configStore,
+            logStore: logStore,
             checkForUpdates: { [weak self] in
                 self?.updaterController.checkForUpdates(nil)
             }

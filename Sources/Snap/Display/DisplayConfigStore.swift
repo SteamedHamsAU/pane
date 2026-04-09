@@ -1,5 +1,4 @@
 import Foundation
-import os
 
 /// Persists display configurations keyed by display UUID.
 ///
@@ -9,10 +8,7 @@ final class DisplayConfigStore {
     private var configurations: [String: DisplayConfiguration] = [:]
     private let fileURL: URL
 
-    private static let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "au.steamedhams.snap",
-        category: "DisplayConfigStore"
-    )
+    private static let logger = SnapLogger(category: "DisplayConfigStore")
 
     convenience init() {
         let appSupport: URL

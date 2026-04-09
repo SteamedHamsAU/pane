@@ -1,6 +1,5 @@
 import CoreGraphics
 import Foundation
-import os
 
 // MARK: - DisplayTransacting
 
@@ -57,10 +56,7 @@ struct SystemDisplayTransactor: DisplayTransacting {
 /// and safe to call from the main thread).
 @MainActor
 enum DisplayConfigurator {
-    private static let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "au.steamedhams.snap",
-        category: "DisplayConfigurator"
-    )
+    private static let logger = SnapLogger(category: "DisplayConfigurator")
 
     /// Apply the given configuration to the external display.
     ///

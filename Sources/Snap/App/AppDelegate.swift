@@ -1,5 +1,4 @@
 import AppKit
-import os
 import ServiceManagement
 import Sparkle
 
@@ -21,10 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         userDriverDelegate: nil
     )
 
-    private static let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "au.steamedhams.snap",
-        category: "AppDelegate"
-    )
+    private static let logger = SnapLogger(category: "AppDelegate")
 
     func applicationDidFinishLaunching(_: Notification) {
         // Skip UI and hardware setup when running as a unit test host
@@ -52,7 +48,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Prompt, toast, and settings controllers
         promptController = PromptWindowController()
         toastController = ToastWindowController()
-        settingsController = SettingsWindowController(configStore: configStore, updaterController: updaterController)
+        settingsController = SettingsWindowController(
+            configStore: configStore,
+            logStore: LogStore.shared,
+            updaterController: updaterController
+        )
         menuBar.onOpenSettings = { [weak self] in
             self?.settingsController?.show()
         }

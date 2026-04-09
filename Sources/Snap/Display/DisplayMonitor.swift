@@ -2,7 +2,6 @@ import AppKit
 import ColorSync
 import CoreGraphics
 import Foundation
-import os
 
 /// Delegate protocol for display connection events.
 @MainActor
@@ -27,10 +26,7 @@ protocol DisplayMonitorDelegate: AnyObject {
 final class DisplayMonitor: @unchecked Sendable {
     @MainActor weak var delegate: DisplayMonitorDelegate?
 
-    private static let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "au.steamedhams.snap",
-        category: "DisplayMonitor"
-    )
+    private static let logger = SnapLogger(category: "DisplayMonitor")
 
     /// Tracks pending debounce tasks per display ID so rapid events are coalesced.
     @MainActor private var pendingEvents: [CGDirectDisplayID: Task<Void, Never>] = [:]

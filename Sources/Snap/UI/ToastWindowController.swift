@@ -1,5 +1,4 @@
 import AppKit
-import os
 import UserNotifications
 
 /// Shows native macOS notifications for known-display auto-apply events.
@@ -9,10 +8,7 @@ final class ToastWindowController: NSObject, UNUserNotificationCenterDelegate {
     private static let categoryID = "DISPLAY_APPLIED"
     nonisolated private static let changeActionID = "CHANGE_ACTION"
 
-    private static let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "au.steamedhams.snap",
-        category: "ToastWindowController"
-    )
+    private static let logger = SnapLogger(category: "ToastWindowController")
 
     override init() {
         super.init()
