@@ -31,6 +31,7 @@ final class MockDisplayTransactor: DisplayTransacting {
     var completeCalled = false
 
     var boundsMap: [CGDirectDisplayID: CGRect] = [:]
+    var mirrorSetDisplays: Set<CGDirectDisplayID> = []
 
     init() {
         dummyRaw = UnsafeMutableRawPointer.allocate(byteCount: 1, alignment: 1)
@@ -62,6 +63,10 @@ final class MockDisplayTransactor: DisplayTransacting {
     func displayBounds(_ display: CGDirectDisplayID) -> CGRect {
         boundsCalls.append(display)
         return boundsMap[display] ?? .zero
+    }
+
+    func isInMirrorSet(_ display: CGDirectDisplayID) -> Bool {
+        mirrorSetDisplays.contains(display)
     }
 }
 
@@ -138,9 +143,10 @@ struct DisplayConfiguratorTests {
         #expect(call.y == -1440) // 0 - 1440
     }
 
-    @Test("Extend always unmirrors first before positioning")
+    @Test("Extend unmirrors first when display is in mirror set")
     func extendUnmirrorsFirst() {
         let mock = makeTransactor()
+        mock.mirrorSetDisplays.insert(externalID)
         let config = makeConfig(mode: .extend, preset: .externalRight)
 
         DisplayConfigurator.apply(config, primaryID: primaryID, externalID: externalID, transactor: mock)
@@ -195,9 +201,10 @@ struct DisplayConfiguratorTests {
         #expect(!mock.completeCalled)
     }
 
-    @Test("Complete failure aborts extend before positioning")
+    @Test("Unmirror complete failure aborts extend before positioning")
     func completeFailure() {
         let mock = makeTransactor()
+        mock.mirrorSetDisplays.insert(externalID)
         mock.completeShouldSucceed = false
         let config = makeConfig(mode: .extend, preset: .externalRight)
 
@@ -215,5 +222,21 @@ struct DisplayConfiguratorTests {
         DisplayConfigurator.apply(config, primaryID: primaryID, externalID: externalID, transactor: mock)
 
         #expect(mock.completeCalled)
+    }
+
+    @Test("Extend skips unmirror when display is not in mirror set (#86)")
+    func extendSkipsUnmirrorWhenNotMirrored() {
+        let mock = makeTransactor()
+        // mirrorSetDisplays is empty — display is not mirrored
+        let config = makeConfig(mode: .extend, preset: .externalRight)
+
+        DisplayConfigurator.apply(config, primaryID: primaryID, externalID: externalID, transactor: mock)
+
+        #expect(mock.mirrorCalls.isEmpty, "Should not attempt unmirror when not in mirror set")
+        #expect(mock.originCalls.count == 1, "Should still position the display")
+        let call = mock.originCalls[0]
+        #expect(call.display == externalID)
+        #expect(call.x == 1440)
+        #expect(call.y == -270)
     }
 }
