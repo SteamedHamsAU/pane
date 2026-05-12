@@ -10,7 +10,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var promptController: PromptWindowController?
     private var toastController: ToastWindowController?
     private var settingsController: SettingsWindowController?
-    private let configStore = DisplayConfigStore()
+    private let logStore = LogStore()
+    private lazy var configStore = DisplayConfigStore(logStore: logStore)
     private var currentDisplay: ConnectedDisplay?
     private var pendingToastTask: Task<Void, Never>?
 
@@ -20,12 +21,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         userDriverDelegate: nil
     )
 
-    private static let logger = SnapLogger(category: "AppDelegate")
+    private lazy var logger = SnapLogger(category: "AppDelegate", logStore: logStore)
 
     func applicationDidFinishLaunching(_: Notification) {
         // Skip UI and hardware setup when running as a unit test host
         guard !isRunningTests else {
-            Self.logger.notice("Snap launched as test host — skipping UI setup")
+            logger.notice("Snap launched as test host — skipping UI setup")
             return
         }
 
@@ -38,7 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.toastController?.show(
                 message: "External Display — extend right applied",
                 onChangeTapped: {
-                    Self.logger.notice("Change tapped from test notification")
+                    self?.logger.notice("Change tapped from test notification")
                 }
             )
         }
@@ -47,10 +48,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Prompt, toast, and settings controllers
         promptController = PromptWindowController()
-        toastController = ToastWindowController()
+        toastController = ToastWindowController(logStore: logStore)
         settingsController = SettingsWindowController(
             configStore: configStore,
-            logStore: LogStore.shared,
+            logStore: logStore,
             updaterController: updaterController
         )
         menuBar.onOpenSettings = { [weak self] in
@@ -58,7 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // Display monitoring
-        let monitor = DisplayMonitor()
+        let monitor = DisplayMonitor(logStore: logStore)
         monitor.delegate = self
         monitor.startMonitoring()
         displayMonitor = monitor
@@ -69,7 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // First-run: ask user to enable launch at login
         promptLaunchAtLoginIfNeeded()
 
-        Self.logger.notice("Snap started")
+        logger.notice("Snap started")
     }
 
     func applicationWillTerminate(_: Notification) {
@@ -109,9 +110,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if response == .alertFirstButtonReturn {
             do {
                 try SMAppService.mainApp.register()
-                Self.logger.notice("Launch at login enabled via first-run prompt")
+                logger.notice("Launch at login enabled via first-run prompt")
             } catch {
-                Self.logger.error("Failed to enable launch at login: \(error)")
+                logger.error("Failed to enable launch at login: \(error)")
             }
         }
     }
@@ -130,8 +131,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onApply: { [weak self] config in
                 self?.applyAndSave(config: config, displayID: displayID, uuid: uuid, name: name, resolution: resolution)
             },
-            onDismiss: {
-                Self.logger.notice("Prompt dismissed for \(name)")
+            onDismiss: { [weak self] in
+                self?.logger.notice("Prompt dismissed for \(name)")
             }
         )
     }
@@ -146,20 +147,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Guard against stale prompts — the display may have gone offline
         // (e.g. phantom during sleep/wake) since the prompt was shown.
         guard isDisplayOnline(displayID) else {
-            Self.logger.warning("Display \(displayID) [\(uuid)] is offline — skipping apply and save")
+            logger.warning("Display \(displayID) [\(uuid)] is offline — skipping apply and save")
             return
         }
         if let monitor = displayMonitor {
             let currentUUID = monitor.displayUUID(for: displayID)
             guard currentUUID == uuid else {
-                Self.logger.warning(
+                logger.warning(
                     "Display \(displayID) UUID changed (\(uuid) → \(currentUUID)) — skipping apply and save"
                 )
                 return
             }
         }
 
-        DisplayConfigurator.apply(config, primaryID: CGMainDisplayID(), externalID: displayID)
+        DisplayConfigurator.apply(config, primaryID: CGMainDisplayID(), externalID: displayID, logger: logger)
 
         // Save the config so the display appears in Settings.
         // rememberThisDisplay controls whether to auto-apply silently next time.
@@ -176,7 +177,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         savedConfig.screenSizeInches = Int(diagonalInches.rounded())
         savedConfig.lastConnected = Date()
         configStore.save(savedConfig, for: uuid)
-        Self.logger.notice("Saved config for \(name) [\(uuid)] (auto-apply: \(config.rememberThisDisplay))")
+        logger.notice("Saved config for \(name) [\(uuid)] (auto-apply: \(config.rememberThisDisplay))")
 
         currentDisplay = ConnectedDisplay(
             id: displayID, uuid: uuid, name: name, resolution: resolution, appliedConfig: config
@@ -222,13 +223,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard CGGetOnlineDisplayList(0, nil, &displayCount) == .success,
               displayCount > 0
         else {
-            Self.logger.notice("No online displays found at launch")
+            logger.notice("No online displays found at launch")
             return
         }
 
         var displayIDs = [CGDirectDisplayID](repeating: 0, count: Int(displayCount))
         guard CGGetOnlineDisplayList(displayCount, &displayIDs, &displayCount) == .success else {
-            Self.logger.error("Failed to enumerate online displays")
+            logger.error("Failed to enumerate online displays")
             return
         }
 
@@ -236,7 +237,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let uuid = monitor.displayUUID(for: id)
             let name = monitor.displayName(for: id)
             let bounds = CGDisplayBounds(id)
-            Self.logger.notice(
+            logger.notice(
                 "Found external display at launch: \(name) [\(uuid)]"
             )
             displayDidConnect(
@@ -258,14 +259,14 @@ extension AppDelegate: DisplayMonitorDelegate {
         name: String,
         resolution: CGSize
     ) {
-        Self.logger.notice("Display connected: \(name) [\(uuid)]")
+        logger.notice("Display connected: \(name) [\(uuid)]")
 
         // Dismiss any stale prompt (e.g. from a phantom display during sleep/wake)
         promptController?.dismiss()
 
         if let savedConfig = configStore.configuration(for: uuid), savedConfig.rememberThisDisplay {
             // Known display with auto-apply — apply silently
-            DisplayConfigurator.apply(savedConfig, primaryID: CGMainDisplayID(), externalID: id)
+            DisplayConfigurator.apply(savedConfig, primaryID: CGMainDisplayID(), externalID: id, logger: logger)
 
             // Update lastConnected timestamp
             var updatedConfig = savedConfig
@@ -287,7 +288,7 @@ extension AppDelegate: DisplayMonitorDelegate {
                 let targetName = savedConfig.mirrorTarget.displayName.lowercased()
                 modeLabel = "\(modeName) \(targetName)"
             }
-            Self.logger.notice("Applied saved config: \(modeLabel)")
+            logger.notice("Applied saved config: \(modeLabel)")
 
             // Show toast after a brief delay — the display reconfiguration
             // invalidates screen geometry, so we wait for it to settle
@@ -298,7 +299,7 @@ extension AppDelegate: DisplayMonitorDelegate {
                 pendingToastTask = Task { @MainActor [weak self] in
                     try? await Task.sleep(for: .seconds(1.5))
                     guard !Task.isCancelled else { return }
-                    Self.logger.notice("Showing toast: \(toastMessage)")
+                    logger.notice("Showing toast: \(toastMessage)")
                     self?.toastController?.show(
                         message: toastMessage,
                         onChangeTapped: { [weak self] in
@@ -324,7 +325,7 @@ extension AppDelegate: DisplayMonitorDelegate {
 
         guard currentDisplay?.id == id else { return }
         let name = currentDisplay?.name ?? "unknown"
-        Self.logger.notice("Display disconnected: \(name) (ID \(id))")
+        logger.notice("Display disconnected: \(name) (ID \(id))")
         currentDisplay = nil
         menuBarController?.updateCurrentDisplay(nil)
     }

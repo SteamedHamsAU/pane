@@ -6,8 +6,6 @@ import os
 /// Uses `OSAllocatedUnfairLock` for synchronous, lock-based thread safety —
 /// safe to call from any thread including the CGDisplay reconfiguration callback.
 final class LogStore: Sendable {
-    static let shared = LogStore()
-
     /// Maximum number of entries retained in the ring buffer.
     let capacity: Int
 
@@ -17,9 +15,19 @@ final class LogStore: Sendable {
         case warning
         case error
 
+        /// Numeric severity used for ordering. Adding a new case requires
+        /// assigning it a rank — the compiler enforces exhaustive switching.
+        var rank: Int {
+            switch self {
+            case .info: 0
+            case .notice: 1
+            case .warning: 2
+            case .error: 3
+            }
+        }
+
         static func < (lhs: Level, rhs: Level) -> Bool {
-            let order: [Level] = [.info, .notice, .warning, .error]
-            return order.firstIndex(of: lhs)! < order.firstIndex(of: rhs)!
+            lhs.rank < rhs.rank
         }
     }
 
@@ -32,9 +40,16 @@ final class LogStore: Sendable {
     }
 
     private struct State {
-        var entries: [Entry] = []
+        var buffer: [Entry?]
+        var head: Int = 0
+        var count: Int = 0
         var nextID: UInt64 = 0
         let capacity: Int
+
+        init(capacity: Int) {
+            self.capacity = capacity
+            self.buffer = Array(repeating: nil, count: capacity)
+        }
     }
 
     private let state: OSAllocatedUnfairLock<State>
@@ -54,19 +69,30 @@ final class LogStore: Sendable {
                 message: message
             )
             st.nextID += 1
-            st.entries.append(entry)
-            if st.entries.count > st.capacity {
-                st.entries.removeFirst(st.entries.count - st.capacity)
+
+            let index = (st.head + st.count) % st.capacity
+            if st.count < st.capacity {
+                st.buffer[index] = entry
+                st.count += 1
+            } else {
+                st.buffer[st.head] = entry
+                st.head = (st.head + 1) % st.capacity
             }
         }
     }
 
     func entries() -> [Entry] {
-        state.withLock { $0.entries }
+        state.withLock { st in
+            (0 ..< st.count).map { st.buffer[(st.head + $0) % st.capacity]! }
+        }
     }
 
     func clear() {
-        state.withLock { $0.entries.removeAll() }
+        state.withLock { st in
+            st.buffer = Array(repeating: nil, count: st.capacity)
+            st.head = 0
+            st.count = 0
+        }
     }
 
     /// Formats all entries as a plain-text diagnostic report for clipboard export.
@@ -81,7 +107,7 @@ final class LogStore: Sendable {
             "Snap Diagnostic Log",
             "Exported: \(formatter.string(from: Date()))",
             "Entries: \(snapshot.count)",
-            String(repeating: "─", count: 72)
+            String(repeating: "─", count: 72),
         ]
 
         for entry in snapshot {

@@ -26,7 +26,7 @@ protocol DisplayMonitorDelegate: AnyObject {
 final class DisplayMonitor: @unchecked Sendable {
     @MainActor weak var delegate: DisplayMonitorDelegate?
 
-    private static let logger = SnapLogger(category: "DisplayMonitor")
+    private let logger: SnapLogger
 
     /// Tracks pending debounce tasks per display ID so rapid events are coalesced.
     @MainActor private var pendingEvents: [CGDirectDisplayID: Task<Void, Never>] = [:]
@@ -52,6 +52,7 @@ final class DisplayMonitor: @unchecked Sendable {
     }
 
     init(
+        logStore: LogStore = LogStore(),
         debounceInterval: Duration = .milliseconds(500),
         isBuiltIn: @escaping @Sendable (CGDirectDisplayID) -> Bool = { CGDisplayIsBuiltin($0) != 0 },
         isOnline: @escaping @Sendable (CGDirectDisplayID) -> Bool = { displayID in
@@ -66,6 +67,7 @@ final class DisplayMonitor: @unchecked Sendable {
             return ids.contains(displayID)
         }
     ) {
+        self.logger = SnapLogger(category: "DisplayMonitor", logStore: logStore)
         self.debounceInterval = debounceInterval
         self.isBuiltIn = isBuiltIn
         self.isOnline = isOnline
@@ -80,9 +82,9 @@ final class DisplayMonitor: @unchecked Sendable {
         let pointer = Unmanaged.passUnretained(self).toOpaque()
         let status = CGDisplayRegisterReconfigurationCallback(Self.reconfigurationCallback, pointer)
         if status != .success {
-            Self.logger.error("Failed to register display reconfiguration callback: \(status.rawValue)")
+            logger.error("Failed to register display reconfiguration callback: \(status.rawValue)")
         } else {
-            Self.logger.notice("Display monitoring started")
+            logger.notice("Display monitoring started")
         }
     }
 
@@ -93,7 +95,7 @@ final class DisplayMonitor: @unchecked Sendable {
         CGDisplayRemoveReconfigurationCallback(Self.reconfigurationCallback, pointer)
         isStopped = true
         cancelAllPendingEvents()
-        Self.logger.notice("Display monitoring stopped")
+        logger.notice("Display monitoring stopped")
     }
 
     /// Cancel all in-flight debounce tasks to prevent stale delegate calls.
@@ -114,7 +116,7 @@ final class DisplayMonitor: @unchecked Sendable {
 
     func handleReconfiguration(displayID: CGDirectDisplayID, flags: CGDisplayChangeSummaryFlags) {
         // Log all events for debugging
-        Self.logger.notice(
+        logger.notice(
             // swiftformat:disable:next wrap
             // swiftlint:disable:next line_length
             "Reconfiguration event: display=\(displayID) flags=\(flags.rawValue) add=\(flags.contains(.addFlag)) builtin=\(CGDisplayIsBuiltin(displayID)) mirror=\(CGDisplayIsInMirrorSet(displayID))"
@@ -126,12 +128,12 @@ final class DisplayMonitor: @unchecked Sendable {
         // the display (e.g. mirror/unmirror transition) — not a physical disconnect.
         // Suppress both connect and disconnect to avoid re-applying config in a loop.
         if flags.contains(.removeFlag), flags.contains(.addFlag) {
-            Self.logger.notice("Display \(displayID) reconfigured (add+remove) — no action needed")
+            logger.notice("Display \(displayID) reconfigured (add+remove) — no action needed")
             return
         }
 
         if flags.contains(.removeFlag) {
-            Self.logger.notice("External display disconnected: \(displayID)")
+            logger.notice("External display disconnected: \(displayID)")
             dispatchDebounced(displayID: displayID) { monitor in
                 monitor.delegate?.displayDidDisconnect(id: displayID)
             }
@@ -147,7 +149,7 @@ final class DisplayMonitor: @unchecked Sendable {
         let bounds = CGDisplayBounds(displayID)
         let resolution = bounds.size
 
-        Self.logger.notice(
+        logger.notice(
             "External display connected: [\(capturedUUID)] \(Int(resolution.width))×\(Int(resolution.height))"
         )
 
@@ -156,14 +158,14 @@ final class DisplayMonitor: @unchecked Sendable {
             // Post-debounce validation: verify the display is still present and
             // hasn't been replaced by a different physical display reusing the ID.
             guard isOnline(displayID) else {
-                Self.logger.notice(
+                monitor.logger.notice(
                     "Display \(displayID) went offline during debounce — dropping connect event"
                 )
                 return
             }
             let currentUUID = monitor.displayUUID(for: displayID)
             guard currentUUID == capturedUUID else {
-                Self.logger.notice(
+                monitor.logger.notice(
                     "Display \(displayID) UUID changed during debounce (\(capturedUUID) → \(currentUUID)) — dropping"
                 )
                 return
@@ -208,7 +210,7 @@ final class DisplayMonitor: @unchecked Sendable {
     /// Returns a persistent UUID string for the given display.
     func displayUUID(for displayID: CGDirectDisplayID) -> String {
         guard let unmanagedUUID = CGDisplayCreateUUIDFromDisplayID(displayID) else {
-            Self.logger.warning("Could not create UUID for display \(displayID), using fallback")
+            logger.warning("Could not create UUID for display \(displayID), using fallback")
             return "unknown-\(displayID)"
         }
         let cfUUID = unmanagedUUID.takeRetainedValue()
@@ -227,7 +229,7 @@ final class DisplayMonitor: @unchecked Sendable {
                 return screen.localizedName
             }
         }
-        Self.logger.notice("No NSScreen match for display \(displayID), using fallback")
+        logger.notice("No NSScreen match for display \(displayID), using fallback")
         return "External Display"
     }
 }

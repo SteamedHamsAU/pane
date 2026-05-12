@@ -56,8 +56,6 @@ struct SystemDisplayTransactor: DisplayTransacting {
 /// and safe to call from the main thread).
 @MainActor
 enum DisplayConfigurator {
-    private static let logger = SnapLogger(category: "DisplayConfigurator")
-
     /// Apply the given configuration to the external display.
     ///
     /// Wraps all changes in `beginConfiguration` / `completeConfiguration` transactions
@@ -66,7 +64,8 @@ enum DisplayConfigurator {
         _ config: DisplayConfiguration,
         primaryID: CGDirectDisplayID,
         externalID: CGDirectDisplayID,
-        transactor: DisplayTransacting = SystemDisplayTransactor()
+        transactor: DisplayTransacting = SystemDisplayTransactor(),
+        logger: SnapLogger
     ) {
         guard let cfg = transactor.beginConfiguration() else {
             logger.error("beginConfiguration failed")
@@ -75,9 +74,9 @@ enum DisplayConfigurator {
 
         switch config.mode {
         case .extend:
-            applyExtend(config, cfg: cfg, primaryID: primaryID, externalID: externalID, transactor: transactor)
+            applyExtend(config, cfg: cfg, primaryID: primaryID, externalID: externalID, transactor: transactor, logger: logger)
         case .mirror:
-            applyMirror(config, cfg: cfg, primaryID: primaryID, externalID: externalID, transactor: transactor)
+            applyMirror(config, cfg: cfg, primaryID: primaryID, externalID: externalID, transactor: transactor, logger: logger)
         }
     }
 
@@ -88,7 +87,8 @@ enum DisplayConfigurator {
         cfg: CGDisplayConfigRef,
         primaryID: CGDirectDisplayID,
         externalID: CGDirectDisplayID,
-        transactor: DisplayTransacting
+        transactor: DisplayTransacting,
+        logger: SnapLogger
     ) {
         // Determine whether we need a separate unmirror transaction.
         // When mirrored, we must commit the unmirror first so that
@@ -148,7 +148,8 @@ enum DisplayConfigurator {
         cfg: CGDisplayConfigRef,
         primaryID: CGDirectDisplayID,
         externalID: CGDirectDisplayID,
-        transactor: DisplayTransacting
+        transactor: DisplayTransacting,
+        logger: SnapLogger
     ) {
         switch config.mirrorTarget {
         case .macBook:
