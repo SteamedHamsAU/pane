@@ -55,6 +55,7 @@ final class LogStore: Sendable {
     private let state: OSAllocatedUnfairLock<State>
 
     init(capacity: Int = 500) {
+        precondition(capacity > 0, "LogStore capacity must be at least 1")
         self.capacity = capacity
         self.state = OSAllocatedUnfairLock(initialState: State(capacity: capacity))
     }
@@ -83,7 +84,7 @@ final class LogStore: Sendable {
 
     func entries() -> [Entry] {
         state.withLock { st in
-            (0 ..< st.count).map { st.buffer[(st.head + $0) % st.capacity]! }
+            (0 ..< st.count).compactMap { st.buffer[(st.head + $0) % st.capacity] }
         }
     }
 

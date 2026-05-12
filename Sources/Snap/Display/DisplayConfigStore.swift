@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// Persists display configurations keyed by display UUID.
 ///
@@ -10,13 +11,23 @@ final class DisplayConfigStore {
     private let logger: SnapLogger
 
     convenience init(logStore: LogStore = LogStore()) {
-        let appSupport = (try? FileManager.default.url(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask,
-            appropriateFor: nil,
-            create: true
-        )) ?? FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Application Support", isDirectory: true)
+        let appSupport: URL
+        do {
+            appSupport = try FileManager.default.url(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: true
+            )
+        } catch {
+            // SnapLogger isn't available before self.init; use os.Logger for this unlikely fallback.
+            Logger(
+                subsystem: Bundle.main.bundleIdentifier ?? "au.steamedhams.snap",
+                category: "DisplayConfigStore"
+            ).error("Failed to resolve Application Support directory: \(error.localizedDescription, privacy: .public)")
+            appSupport = FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent("Library/Application Support", isDirectory: true)
+        }
         let snapDir = appSupport.appendingPathComponent("Snap", isDirectory: true)
         self.init(fileURL: snapDir.appendingPathComponent("displays.plist"), logStore: logStore)
     }
