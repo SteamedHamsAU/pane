@@ -35,6 +35,9 @@ final class DisplayMonitor: @unchecked Sendable {
     /// Tracks pending debounce tasks per display ID so rapid events are coalesced.
     @MainActor private var pendingEvents: [CGDirectDisplayID: Task<Void, Never>] = [:]
 
+    /// Set when monitoring stops; checked by in-flight debounce tasks to bail out.
+    @MainActor private var isStopped = false
+
     /// How long to wait for additional events before dispatching.
     private let debounceInterval: Duration
 
@@ -75,7 +78,9 @@ final class DisplayMonitor: @unchecked Sendable {
     // MARK: - Monitoring lifecycle
 
     /// Start listening for display configuration changes.
+    @MainActor
     func startMonitoring() {
+        isStopped = false
         let pointer = Unmanaged.passUnretained(self).toOpaque()
         let status = CGDisplayRegisterReconfigurationCallback(Self.reconfigurationCallback, pointer)
         if status != .success {
@@ -86,10 +91,22 @@ final class DisplayMonitor: @unchecked Sendable {
     }
 
     /// Stop listening for display configuration changes.
+    @MainActor
     func stopMonitoring() {
         let pointer = Unmanaged.passUnretained(self).toOpaque()
         CGDisplayRemoveReconfigurationCallback(Self.reconfigurationCallback, pointer)
+        isStopped = true
+        cancelAllPendingEvents()
         Self.logger.notice("Display monitoring stopped")
+    }
+
+    /// Cancel all in-flight debounce tasks to prevent stale delegate calls.
+    @MainActor
+    private func cancelAllPendingEvents() {
+        for task in pendingEvents.values {
+            task.cancel()
+        }
+        pendingEvents.removeAll()
     }
 
     deinit {
@@ -178,12 +195,12 @@ final class DisplayMonitor: @unchecked Sendable {
         action: @escaping @MainActor (DisplayMonitor) -> Void
     ) {
         Task { @MainActor [weak self] in
-            guard let self else { return }
+            guard let self, !self.isStopped else { return }
             self.pendingEvents[displayID]?.cancel()
             self.pendingEvents[displayID] = Task { @MainActor [weak self] in
                 guard let self else { return }
                 try? await Task.sleep(for: self.debounceInterval)
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, !self.isStopped else { return }
                 self.pendingEvents.removeValue(forKey: displayID)
                 action(self)
             }
