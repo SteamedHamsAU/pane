@@ -223,10 +223,10 @@ struct DisplayMonitorDebounceTests {
         let (monitor, delegate) = makeSUT()
 
         monitor.handleReconfiguration(displayID: fakeDisplayA, flags: .addFlag)
-        monitor.stopMonitoring()
+        await monitor.stopMonitoring()
 
-        // Let the MainActor task that cancels pending events execute,
-        // then wait past the debounce interval.
+        // Cancellation is synchronous on @MainActor now;
+        // wait past the debounce interval to confirm nothing fires.
         try await Task.sleep(for: debounceWait)
 
         #expect(delegate.connectCalls.isEmpty, "Pending event should have been cancelled by stopMonitoring")
