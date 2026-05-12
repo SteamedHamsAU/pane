@@ -107,7 +107,13 @@ struct DisplayConfiguratorTests {
         let mock = makeTransactor()
         let config = makeConfig(mode: .extend, preset: .externalRight)
 
-        DisplayConfigurator.apply(config, primaryID: primaryID, externalID: externalID, transactor: mock, logger: logger)
+        DisplayConfigurator.apply(
+            config,
+            primaryID: primaryID,
+            externalID: externalID,
+            transactor: mock,
+            logger: logger
+        )
 
         #expect(mock.originCalls.count == 1)
         let call = mock.originCalls[0]
@@ -121,7 +127,13 @@ struct DisplayConfiguratorTests {
         let mock = makeTransactor()
         let config = makeConfig(mode: .extend, preset: .externalLeft)
 
-        DisplayConfigurator.apply(config, primaryID: primaryID, externalID: externalID, transactor: mock, logger: logger)
+        DisplayConfigurator.apply(
+            config,
+            primaryID: primaryID,
+            externalID: externalID,
+            transactor: mock,
+            logger: logger
+        )
 
         #expect(mock.originCalls.count == 1)
         let call = mock.originCalls[0]
@@ -135,7 +147,13 @@ struct DisplayConfiguratorTests {
         let mock = makeTransactor()
         let config = makeConfig(mode: .extend, preset: .externalAbove)
 
-        DisplayConfigurator.apply(config, primaryID: primaryID, externalID: externalID, transactor: mock, logger: logger)
+        DisplayConfigurator.apply(
+            config,
+            primaryID: primaryID,
+            externalID: externalID,
+            transactor: mock,
+            logger: logger
+        )
 
         #expect(mock.originCalls.count == 1)
         let call = mock.originCalls[0]
@@ -150,7 +168,13 @@ struct DisplayConfiguratorTests {
         mock.mirrorSetDisplays.insert(externalID)
         let config = makeConfig(mode: .extend, preset: .externalRight)
 
-        DisplayConfigurator.apply(config, primaryID: primaryID, externalID: externalID, transactor: mock, logger: logger)
+        DisplayConfigurator.apply(
+            config,
+            primaryID: primaryID,
+            externalID: externalID,
+            transactor: mock,
+            logger: logger
+        )
 
         #expect(mock.mirrorCalls.count == 1)
         let unmirror = mock.mirrorCalls[0]
@@ -165,7 +189,13 @@ struct DisplayConfiguratorTests {
         let mock = makeTransactor()
         let config = makeConfig(mode: .mirror, mirror: .macBook)
 
-        DisplayConfigurator.apply(config, primaryID: primaryID, externalID: externalID, transactor: mock, logger: logger)
+        DisplayConfigurator.apply(
+            config,
+            primaryID: primaryID,
+            externalID: externalID,
+            transactor: mock,
+            logger: logger
+        )
 
         #expect(mock.mirrorCalls.count == 1)
         #expect(mock.mirrorCalls[0].display == externalID)
@@ -178,7 +208,13 @@ struct DisplayConfiguratorTests {
         let mock = makeTransactor()
         let config = makeConfig(mode: .mirror, mirror: .external)
 
-        DisplayConfigurator.apply(config, primaryID: primaryID, externalID: externalID, transactor: mock, logger: logger)
+        DisplayConfigurator.apply(
+            config,
+            primaryID: primaryID,
+            externalID: externalID,
+            transactor: mock,
+            logger: logger
+        )
 
         #expect(mock.mirrorCalls.count == 1)
         #expect(mock.mirrorCalls[0].display == primaryID)
@@ -194,7 +230,13 @@ struct DisplayConfiguratorTests {
         mock.beginShouldSucceed = false
         let config = makeConfig(mode: .extend)
 
-        DisplayConfigurator.apply(config, primaryID: primaryID, externalID: externalID, transactor: mock, logger: logger)
+        DisplayConfigurator.apply(
+            config,
+            primaryID: primaryID,
+            externalID: externalID,
+            transactor: mock,
+            logger: logger
+        )
 
         #expect(mock.beginCalled)
         #expect(mock.originCalls.isEmpty)
@@ -209,7 +251,13 @@ struct DisplayConfiguratorTests {
         mock.completeShouldSucceed = false
         let config = makeConfig(mode: .extend, preset: .externalRight)
 
-        DisplayConfigurator.apply(config, primaryID: primaryID, externalID: externalID, transactor: mock, logger: logger)
+        DisplayConfigurator.apply(
+            config,
+            primaryID: primaryID,
+            externalID: externalID,
+            transactor: mock,
+            logger: logger
+        )
 
         #expect(mock.completeCalled)
         #expect(mock.originCalls.isEmpty, "Unmirror failed — positioning should be skipped")
@@ -220,7 +268,13 @@ struct DisplayConfiguratorTests {
         let mock = makeTransactor()
         let config = makeConfig(mode: .extend, preset: .externalRight)
 
-        DisplayConfigurator.apply(config, primaryID: primaryID, externalID: externalID, transactor: mock, logger: logger)
+        DisplayConfigurator.apply(
+            config,
+            primaryID: primaryID,
+            externalID: externalID,
+            transactor: mock,
+            logger: logger
+        )
 
         #expect(mock.completeCalled)
     }
@@ -231,7 +285,13 @@ struct DisplayConfiguratorTests {
         // mirrorSetDisplays is empty — display is not mirrored
         let config = makeConfig(mode: .extend, preset: .externalRight)
 
-        DisplayConfigurator.apply(config, primaryID: primaryID, externalID: externalID, transactor: mock, logger: logger)
+        DisplayConfigurator.apply(
+            config,
+            primaryID: primaryID,
+            externalID: externalID,
+            transactor: mock,
+            logger: logger
+        )
 
         #expect(mock.mirrorCalls.isEmpty, "Should not attempt unmirror when not in mirror set")
         #expect(mock.originCalls.count == 1, "Should still position the display")

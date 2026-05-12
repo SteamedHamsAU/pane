@@ -107,7 +107,7 @@ final class LogStore: Sendable {
             "Snap Diagnostic Log",
             "Exported: \(formatter.string(from: Date()))",
             "Entries: \(snapshot.count)",
-            String(repeating: "─", count: 72),
+            String(repeating: "─", count: 72)
         ]
 
         for entry in snapshot {

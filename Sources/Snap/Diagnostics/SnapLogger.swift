@@ -12,7 +12,7 @@ import os
 /// desktop utility — logged values (display IDs, UUIDs, paths) are the user's
 /// own hardware metadata, not sensitive data. The in-app LogStore and system
 /// log serve the same audience: the person sitting at the Mac.
-struct SnapLogger: Sendable {
+struct SnapLogger {
     private let osLogger: Logger
     private let category: String
     private let logStore: LogStore

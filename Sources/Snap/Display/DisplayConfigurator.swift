@@ -74,9 +74,23 @@ enum DisplayConfigurator {
 
         switch config.mode {
         case .extend:
-            applyExtend(config, cfg: cfg, primaryID: primaryID, externalID: externalID, transactor: transactor, logger: logger)
+            applyExtend(
+                config,
+                cfg: cfg,
+                primaryID: primaryID,
+                externalID: externalID,
+                transactor: transactor,
+                logger: logger
+            )
         case .mirror:
-            applyMirror(config, cfg: cfg, primaryID: primaryID, externalID: externalID, transactor: transactor, logger: logger)
+            applyMirror(
+                config,
+                cfg: cfg,
+                primaryID: primaryID,
+                externalID: externalID,
+                transactor: transactor,
+                logger: logger
+            )
         }
     }
 
