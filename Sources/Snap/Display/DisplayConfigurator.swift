@@ -13,6 +13,7 @@ protocol DisplayTransacting {
     func configureMirror(_ configRef: CGDisplayConfigRef, display: CGDirectDisplayID, primary: CGDirectDisplayID)
     func completeConfiguration(_ configRef: CGDisplayConfigRef) -> Bool
     func displayBounds(_ display: CGDirectDisplayID) -> CGRect
+    func isInMirrorSet(_ display: CGDirectDisplayID) -> Bool
 }
 
 // MARK: - SystemDisplayTransactor
@@ -41,6 +42,10 @@ struct SystemDisplayTransactor: DisplayTransacting {
 
     func displayBounds(_ display: CGDirectDisplayID) -> CGRect {
         CGDisplayBounds(display)
+    }
+
+    func isInMirrorSet(_ display: CGDirectDisplayID) -> Bool {
+        CGDisplayIsInMirrorSet(display) != 0
     }
 }
 
@@ -89,19 +94,25 @@ enum DisplayConfigurator {
         externalID: CGDirectDisplayID,
         transactor: DisplayTransacting
     ) {
-        // Transaction 1: unmirror (idempotent if not mirrored).
-        // Must commit before reading bounds so they reflect the
-        // independent (non-mirrored) display geometry.
-        transactor.configureMirror(cfg, display: externalID, primary: kCGNullDirectDisplay)
-        if !transactor.completeConfiguration(cfg) {
-            logger.error("completeConfiguration failed (unmirror)")
-            return
-        }
-
-        // Transaction 2: position using settled post-unmirror bounds
-        guard let positionCfg = transactor.beginConfiguration() else {
-            logger.error("beginConfiguration failed (position)")
-            return
+        // Determine whether we need a separate unmirror transaction.
+        // When mirrored, we must commit the unmirror first so that
+        // CGDisplayBounds returns the independent (non-mirrored) geometry.
+        // When already unmirrored, skip straight to positioning using
+        // the transaction started by apply(). (Fixes #86)
+        let positionCfg: CGDisplayConfigRef
+        if transactor.isInMirrorSet(externalID) {
+            transactor.configureMirror(cfg, display: externalID, primary: kCGNullDirectDisplay)
+            if !transactor.completeConfiguration(cfg) {
+                logger.error("completeConfiguration failed (unmirror)")
+                return
+            }
+            guard let newCfg = transactor.beginConfiguration() else {
+                logger.error("beginConfiguration failed (position)")
+                return
+            }
+            positionCfg = newCfg
+        } else {
+            positionCfg = cfg
         }
 
         let internalBounds = transactor.displayBounds(primaryID)
@@ -130,7 +141,7 @@ enum DisplayConfigurator {
         if transactor.completeConfiguration(positionCfg) {
             logger.info("Display configuration applied successfully")
         } else {
-            logger.error("completeConfiguration failed")
+            logger.error("completeConfiguration failed (position)")
         }
     }
 
