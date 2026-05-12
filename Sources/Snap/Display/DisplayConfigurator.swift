@@ -96,6 +96,7 @@ enum DisplayConfigurator {
 
     // MARK: - Extend
 
+    // swiftlint:disable:next function_parameter_count
     private static func applyExtend(
         _ config: DisplayConfiguration,
         cfg: CGDisplayConfigRef,
@@ -157,6 +158,7 @@ enum DisplayConfigurator {
 
     // MARK: - Mirror
 
+    // swiftlint:disable:next function_parameter_count
     private static func applyMirror(
         _ config: DisplayConfiguration,
         cfg: CGDisplayConfigRef,
