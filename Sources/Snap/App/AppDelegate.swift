@@ -1,6 +1,7 @@
 import AppKit
 import ServiceManagement
 import Sparkle
+import UserNotifications
 
 /// Central coordinator: sets up menu bar, display monitoring, and Sparkle updates.
 @MainActor
@@ -52,6 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Prompt, toast, and settings controllers
         promptController = PromptWindowController()
         toastController = ToastWindowController(logStore: logStore)
+        requestNotificationPermissionIfNeeded()
         settingsController = SettingsWindowController(
             configStore: configStore,
             logStore: logStore,
@@ -204,6 +206,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Detects whether the app was launched as a unit test host.
     private var isRunningTests: Bool {
         ProcessInfo.processInfo.environment["XCTestBundlePath"] != nil
+    }
+
+    /// Requests notification authorization on first launch when the
+    /// notification toggle is on and permission hasn't been asked yet.
+    private func requestNotificationPermissionIfNeeded() {
+        let showToast = UserDefaults.standard.object(forKey: "showToastOnKnownDisplay") as? Bool ?? true
+        guard showToast else { return }
+
+        let center = UNUserNotificationCenter.current()
+        center.getNotificationSettings { settings in
+            guard settings.authorizationStatus == .notDetermined else { return }
+            center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+                self.logger.notice("Notification permission granted: \(granted)")
+            }
+        }
     }
 
     private func retriggerPrompt() {

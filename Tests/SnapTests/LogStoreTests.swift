@@ -132,4 +132,16 @@ struct LogStoreTests {
         #expect(store.entries().count == 1)
         #expect(store.entries().first?.message == "kept")
     }
+
+    @Test("Appends are blocked after toggling off")
+    func toggleOffBlocksAppends() {
+        let store = LogStore(capacity: 10, enabled: true)
+        store.append(level: .info, category: "T", message: "before")
+        #expect(store.entries().count == 1)
+
+        store.isEnabled = false
+        store.append(level: .info, category: "T", message: "blocked")
+        #expect(store.entries().count == 1)
+        #expect(store.entries().first?.message == "before")
+    }
 }

@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#1E293B"/>
+    </linearGradient>
+    <linearGradient id="uwFill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1E40AF"/>
+      <stop offset="100%" stop-color="#1E3A8A"/>
+    </linearGradient>
+    <linearGradient id="mbFill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FEF2F2"/>
+      <stop offset="100%" stop-color="#FEE2E2"/>
+    </linearGradient>
+    <filter id="ds">
+      <feDropShadow dx="0" dy="4" stdDeviation="10" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="textShadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+    <!-- Subtle noise texture overlay -->
+    <filter id="noise">
+      <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feBlend in="SourceGraphic" mode="multiply" result="noisy"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.03"/>
+      </feComponentTransfer>
+      <feBlend in="SourceGraphic" mode="normal"/>
+    </filter>
+    <!-- Radial highlight -->
+    <radialGradient id="highlight" cx="0.35" cy="0.5" r="0.6">
+      <stop offset="0%" stop-color="#1E40AF" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <rect width="1280" height="640" fill="url(#highlight)"/>
+
+  <!-- Icon: ultrawide + MacBook from fire-ice.svg, scaled to fit left side -->
+  <!-- Original graphic spans (52,188)–(972,835) = 920×647 in 1024×1024 viewBox -->
+  <!-- Scale 0.42, positioned to center in left ~480px of canvas -->
+  <g transform="translate(50, 108) scale(0.42)" filter="url(#ds)">
+    <!-- Ultrawide monitor -->
+    <rect x="52" y="188" width="920" height="394" rx="18" ry="18" fill="url(#uwFill)"/>
+
+    <!-- Orange accent glow at overlap seam -->
+    <line x1="70" y1="474" x2="228" y2="474"
+          stroke="#F97316" stroke-width="5" stroke-linecap="round" filter="url(#glow)"/>
+    <line x1="796" y1="474" x2="954" y2="474"
+          stroke="#F97316" stroke-width="5" stroke-linecap="round" filter="url(#glow)"/>
+    <line x1="252" y1="474" x2="772" y2="474"
+          stroke="#F97316" stroke-width="3" stroke-linecap="round" opacity="0.5" filter="url(#glow)"/>
+
+    <!-- MacBook screen bezel -->
+    <rect x="232" y="474" width="560" height="340" rx="14" ry="14" fill="#0A0A0A"/>
+    <path d="M 244,481 H 472 V 496 Q 472,501 477,501 H 547 Q 552,501 552,496 V 481 H 780 Q 785,481 785,486 V 802 Q 785,807 780,807 H 244 Q 239,807 239,802 V 486 Q 239,481 244,481 Z" fill="url(#mbFill)"/>
+
+    <!-- MacBook base -->
+    <path d="M 232,817 H 485.5 Q 487,817 487,818.5 V 818.5 Q 487,820 488.5,820 H 535.5 Q 537,820 537,818.5 V 818.5 Q 537,817 538.5,817 H 792 Q 797,817 797,822 V 830 Q 797,835 792,835 H 232 Q 227,835 227,830 V 822 Q 227,817 232,817 Z" fill="#2A2A2C"/>
+  </g>
+
+  <!-- Text content — right side -->
+
+  <!-- "Snap" title -->
+  <text x="570" y="275" font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-size="100" font-weight="700" fill="#FFFFFF" letter-spacing="-3"
+        filter="url(#textShadow)">Snap</text>
+
+  <!-- Orange accent underline -->
+  <line x1="572" y1="295" x2="700" y2="295"
+        stroke="#F97316" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Tagline line 1 -->
+  <text x="572" y="345" font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-size="26" font-weight="400" fill="#CBD5E1">Plug in a monitor. Pick a layout.</text>
+
+  <!-- Tagline line 2 -->
+  <text x="572" y="385" font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-size="26" font-weight="400" fill="#CBD5E1">Never open Display Settings again.</text>
+
+  <!-- Platform badges -->
+  <text x="572" y="440" font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-size="17" font-weight="500" fill="#64748B" letter-spacing="1">macOS · Swift 6 · Menu bar utility</text>
+</svg>
