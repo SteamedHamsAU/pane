@@ -28,14 +28,6 @@ final class ToastWindowController: NSObject, UNUserNotificationCenterDelegate {
             intentIdentifiers: []
         )
         center.setNotificationCategories([category])
-
-        let log = logger
-        center.requestAuthorization(options: [.alert, .sound]) { granted, error in
-            if let error {
-                log.error("Notification auth error: \(error)")
-            }
-            log.notice("Notification permission granted: \(granted)")
-        }
     }
 
     func show(

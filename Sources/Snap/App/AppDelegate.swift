@@ -30,6 +30,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        // Diagnostic logging
+        logStore.isEnabled = UserDefaults.standard.bool(forKey: "diagnosticLoggingEnabled")
+
         // Menu bar
         let menuBar = MenuBarController(configStore: configStore)
         menuBar.onRetriggerPrompt = { [weak self] in
