@@ -154,11 +154,7 @@ struct DiagnosticsView: View {
 
     private func refresh() {
         entries = logStore.entries()
-        if let selected = selectedCategory,
-           !entries.contains(where: { $0.category == selected })
-        {
-            selectedCategory = nil
-        }
+        resetCategoryIfNeeded()
     }
 
     private func startAutoRefresh() {
@@ -168,12 +164,15 @@ struct DiagnosticsView: View {
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled else { break }
                 entries = logStore.entries()
-                if let selected = selectedCategory,
-                   !entries.contains(where: { $0.category == selected })
-                {
-                    selectedCategory = nil
-                }
+                resetCategoryIfNeeded()
             }
+        }
+    }
+
+    private func resetCategoryIfNeeded() {
+        guard let selected = selectedCategory else { return }
+        if !entries.contains(where: { $0.category == selected }) {
+            selectedCategory = nil
         }
     }
 
