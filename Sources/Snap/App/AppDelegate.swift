@@ -296,7 +296,7 @@ extension AppDelegate: DisplayMonitorDelegate {
             if showToast {
                 let toastMessage = "\(name) — \(modeLabel) applied"
                 pendingToastTask?.cancel()
-                pendingToastTask = Task { @MainActor [weak self] in
+                pendingToastTask = Task { @MainActor [weak self, logger] in
                     try? await Task.sleep(for: .seconds(1.5))
                     guard !Task.isCancelled else { return }
                     logger.notice("Showing toast: \(toastMessage)")
