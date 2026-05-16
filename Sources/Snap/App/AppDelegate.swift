@@ -214,11 +214,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let showToast = UserDefaults.standard.object(forKey: "showToastOnKnownDisplay") as? Bool ?? true
         guard showToast else { return }
 
+        let log = logger
         let center = UNUserNotificationCenter.current()
         center.getNotificationSettings { settings in
             guard settings.authorizationStatus == .notDetermined else { return }
             center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
-                self.logger.notice("Notification permission granted: \(granted)")
+                log.notice("Notification permission granted: \(granted)")
             }
         }
     }
