@@ -155,7 +155,8 @@ struct DiagnosticsView: View {
     private func refresh() {
         entries = logStore.entries()
         if let selected = selectedCategory,
-           !entries.contains(where: { $0.category == selected }) {
+           !entries.contains(where: { $0.category == selected })
+        {
             selectedCategory = nil
         }
     }
@@ -168,7 +169,8 @@ struct DiagnosticsView: View {
                 guard !Task.isCancelled else { break }
                 entries = logStore.entries()
                 if let selected = selectedCategory,
-                   !entries.contains(where: { $0.category == selected }) {
+                   !entries.contains(where: { $0.category == selected })
+                {
                     selectedCategory = nil
                 }
             }
