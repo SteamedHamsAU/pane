@@ -46,23 +46,33 @@ final class LogStore: Sendable {
         var nextID: UInt64 = 0
         var generation: UInt64 = 0
         let capacity: Int
+        var isEnabled: Bool
 
-        init(capacity: Int) {
+        init(capacity: Int, isEnabled: Bool) {
             self.capacity = capacity
+            self.isEnabled = isEnabled
             self.buffer = Array(repeating: nil, count: capacity)
         }
     }
 
     private let state: OSAllocatedUnfairLock<State>
 
-    init(capacity: Int = 500) {
+    init(capacity: Int = 500, enabled: Bool = false) {
         precondition(capacity > 0, "LogStore capacity must be at least 1")
         self.capacity = capacity
-        self.state = OSAllocatedUnfairLock(initialState: State(capacity: capacity))
+        self.state = OSAllocatedUnfairLock(initialState: State(capacity: capacity, isEnabled: enabled))
+    }
+
+    /// Controls whether the ring buffer collects entries. When `false`,
+    /// `append()` is a no-op. `os.Logger` output is unaffected.
+    var isEnabled: Bool {
+        get { state.withLock { $0.isEnabled } }
+        set { state.withLock { $0.isEnabled = newValue } }
     }
 
     func append(level: Level, category: String, message: String) {
         state.withLock { st in
+            guard st.isEnabled else { return }
             let entry = Entry(
                 id: st.nextID,
                 timestamp: Date(),

@@ -4,7 +4,7 @@ import Testing
 struct LogStoreTests {
     @Test("Appends entries and returns them in order")
     func appendAndRetrieve() {
-        let store = LogStore(capacity: 10)
+        let store = LogStore(capacity: 10, enabled: true)
         store.append(level: .info, category: "Test", message: "first")
         store.append(level: .notice, category: "Test", message: "second")
 
@@ -17,7 +17,7 @@ struct LogStoreTests {
 
     @Test("Respects capacity and drops oldest entries")
     func capacityEviction() {
-        let store = LogStore(capacity: 3)
+        let store = LogStore(capacity: 3, enabled: true)
         store.append(level: .info, category: "A", message: "one")
         store.append(level: .info, category: "A", message: "two")
         store.append(level: .info, category: "A", message: "three")
@@ -32,7 +32,7 @@ struct LogStoreTests {
 
     @Test("Clear removes all entries")
     func clearEntries() {
-        let store = LogStore(capacity: 10)
+        let store = LogStore(capacity: 10, enabled: true)
         store.append(level: .warning, category: "X", message: "hello")
         #expect(store.entries().count == 1)
 
@@ -42,7 +42,7 @@ struct LogStoreTests {
 
     @Test("Entries preserve level and category")
     func entryMetadata() {
-        let store = LogStore(capacity: 10)
+        let store = LogStore(capacity: 10, enabled: true)
         store.append(level: .error, category: "Network", message: "timeout")
 
         let entry = store.entries().first
@@ -53,7 +53,7 @@ struct LogStoreTests {
 
     @Test("IDs increment monotonically across clears")
     func idMonotonicity() throws {
-        let store = LogStore(capacity: 10)
+        let store = LogStore(capacity: 10, enabled: true)
         store.append(level: .info, category: "T", message: "a")
         let idBeforeClear = try #require(store.entries().last).id
 
@@ -66,7 +66,7 @@ struct LogStoreTests {
 
     @Test("Formatted report includes header and entries")
     func formattedReport() {
-        let store = LogStore(capacity: 10)
+        let store = LogStore(capacity: 10, enabled: true)
         store.append(level: .notice, category: "App", message: "started")
         store.append(level: .error, category: "Display", message: "failed")
 
@@ -90,5 +90,58 @@ struct LogStoreTests {
         #expect(LogStore.Level.notice < .warning)
         #expect(LogStore.Level.warning < .error)
         #expect(!(LogStore.Level.error < .info))
+    }
+
+    @Test("Defaults to disabled — append is a no-op")
+    func defaultDisabled() {
+        let store = LogStore(capacity: 10)
+        store.append(level: .info, category: "Test", message: "should not appear")
+
+        #expect(store.entries().isEmpty)
+        #expect(!store.isEnabled)
+    }
+
+    @Test("Collects entries when enabled")
+    func enabledCollects() {
+        let store = LogStore(capacity: 10, enabled: true)
+        store.append(level: .info, category: "Test", message: "visible")
+
+        #expect(store.entries().count == 1)
+        #expect(store.entries().first?.message == "visible")
+    }
+
+    @Test("Toggle enabled on starts collecting")
+    func toggleOn() {
+        let store = LogStore(capacity: 10)
+        store.append(level: .info, category: "T", message: "before")
+        #expect(store.entries().isEmpty)
+
+        store.isEnabled = true
+        store.append(level: .info, category: "T", message: "after")
+        #expect(store.entries().count == 1)
+        #expect(store.entries().first?.message == "after")
+    }
+
+    @Test("Existing entries survive toggling off")
+    func toggleOffPreservesEntries() {
+        let store = LogStore(capacity: 10, enabled: true)
+        store.append(level: .info, category: "T", message: "kept")
+        #expect(store.entries().count == 1)
+
+        store.isEnabled = false
+        #expect(store.entries().count == 1)
+        #expect(store.entries().first?.message == "kept")
+    }
+
+    @Test("Appends are blocked after toggling off")
+    func toggleOffBlocksAppends() {
+        let store = LogStore(capacity: 10, enabled: true)
+        store.append(level: .info, category: "T", message: "before")
+        #expect(store.entries().count == 1)
+
+        store.isEnabled = false
+        store.append(level: .info, category: "T", message: "blocked")
+        #expect(store.entries().count == 1)
+        #expect(store.entries().first?.message == "before")
     }
 }

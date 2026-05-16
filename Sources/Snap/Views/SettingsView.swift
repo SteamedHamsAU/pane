@@ -1,6 +1,7 @@
 import AppKit
 import ServiceManagement
 import SwiftUI
+import UserNotifications
 
 @MainActor
 struct SettingsView: View {
@@ -12,11 +13,15 @@ struct SettingsView: View {
     @State private var showNotification = UserDefaults.standard.object(
         forKey: "showToastOnKnownDisplay"
     ) as? Bool ?? true
+    @State private var diagnosticLogging = UserDefaults.standard.bool(
+        forKey: "diagnosticLoggingEnabled"
+    )
     @State private var entries: [(uuid: String, config: DisplayConfiguration)] = []
     @State private var settingsWindowBox = WeakWindowBox()
     @State private var settingsWindowID: ObjectIdentifier?
     @State private var selectedTab = 0
     @State private var showDebugDetails = false
+    @State private var notificationAuthStatus: UNAuthorizationStatus = .notDetermined
 
     private var logger: SnapLogger {
         SnapLogger(category: "SettingsView", logStore: logStore)
@@ -30,10 +35,12 @@ struct SettingsView: View {
             displaysTab
                 .tabItem { Label("Displays", systemImage: "display") }
                 .tag(1)
-            DiagnosticsView(logStore: logStore)
-                .tabItem { Label("Diagnostics", systemImage: "stethoscope") }
-                .tag(2)
-            aboutTab
+            if diagnosticLogging {
+                DiagnosticsView(logStore: logStore)
+                    .tabItem { Label("Diagnostics", systemImage: "stethoscope") }
+                    .tag(2)
+            }
+            AboutView(checkForUpdates: checkForUpdates)
                 .tabItem { Label("About", systemImage: "info.circle") }
                 .tag(3)
         }
@@ -41,6 +48,7 @@ struct SettingsView: View {
         .onAppear {
             launchAtLogin = SMAppService.mainApp.status == .enabled
             entries = configStore.allEntries()
+            checkNotificationPermission()
         }
         .background(
             WindowReader(
@@ -60,9 +68,10 @@ struct SettingsView: View {
                 named: NSWindow.didBecomeKeyNotification,
                 object: window
             ) {
-                _ = notification // unused payload; we just care that our window became key
+                _ = notification
                 await MainActor.run {
                     entries = configStore.allEntries()
+                    checkNotificationPermission()
                 }
             }
         }
@@ -91,13 +100,110 @@ struct SettingsView: View {
                     }
                 }
 
-            Toggle("Show notification when known display connects", isOn: $showNotification)
-                .onChange(of: showNotification) { _, newValue in
-                    UserDefaults.standard.set(newValue, forKey: "showToastOnKnownDisplay")
+            Section {
+                Toggle("Show notification when known display connects", isOn: $showNotification)
+                    .onChange(of: showNotification) { _, newValue in
+                        UserDefaults.standard.set(newValue, forKey: "showToastOnKnownDisplay")
+                        if newValue {
+                            requestNotificationPermissionIfNeeded()
+                        }
+                    }
+
+                if showNotification {
+                    notificationPermissionStatus
                 }
+            }
+
+            Section {
+                Toggle("Enable diagnostic logging", isOn: $diagnosticLogging)
+                    .onChange(of: diagnosticLogging) { _, newValue in
+                        UserDefaults.standard.set(newValue, forKey: "diagnosticLoggingEnabled")
+                        logStore.isEnabled = newValue
+                        if !newValue, selectedTab == 2 {
+                            selectedTab = 0
+                        }
+                    }
+
+                if !diagnosticLogging {
+                    Text("When enabled, a Diagnostics tab appears with an in-app log viewer.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
         .formStyle(.grouped)
         .padding()
+    }
+
+    // MARK: - Notification Permission
+
+    @ViewBuilder
+    private var notificationPermissionStatus: some View {
+        switch notificationAuthStatus {
+        case .authorized, .provisional, .ephemeral:
+            Label("Notifications allowed", systemImage: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+                .font(.system(size: 12))
+        case .denied:
+            HStack {
+                Label("Notification permission denied", systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                    .font(.system(size: 12))
+                Spacer()
+                Button("Open Notification Settings") {
+                    openNotificationSettings()
+                }
+                .controlSize(.small)
+            }
+        case .notDetermined:
+            HStack {
+                Label("Permission not yet requested", systemImage: "questionmark.circle")
+                    .foregroundStyle(.secondary)
+                    .font(.system(size: 12))
+                Spacer()
+                Button("Request Permission") {
+                    requestNotificationPermission()
+                }
+                .controlSize(.small)
+            }
+        @unknown default:
+            EmptyView()
+        }
+    }
+
+    private func checkNotificationPermission() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            Task { @MainActor in
+                notificationAuthStatus = settings.authorizationStatus
+            }
+        }
+    }
+
+    private func requestNotificationPermissionIfNeeded() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            Task { @MainActor in
+                notificationAuthStatus = settings.authorizationStatus
+                if settings.authorizationStatus == .notDetermined {
+                    requestNotificationPermission()
+                }
+            }
+        }
+    }
+
+    private func requestNotificationPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in
+            // Re-read actual settings rather than assuming granted/denied,
+            // in case the request failed for a transient reason.
+            Task { @MainActor in
+                self.checkNotificationPermission()
+            }
+        }
+    }
+
+    private func openNotificationSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension") {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     // MARK: - Remembered Displays
@@ -183,66 +289,6 @@ struct SettingsView: View {
             }
         }
         .padding(.vertical)
-    }
-
-    // MARK: - About
-
-    private var aboutTab: some View {
-        VStack(spacing: 16) {
-            Spacer()
-
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 256, height: 256)
-
-            Text("Snap")
-                .font(.system(size: 22, weight: .semibold))
-
-            HStack(spacing: 8) {
-                let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
-                let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
-                Text("v\(version) · build \(build)")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
-
-                #if DEV_BUILD
-                    Text("Dev")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Capsule().fill(.orange))
-                #endif
-            }
-
-            VStack(spacing: 4) {
-                Text("Copyright © 2026 Steamed Hams Pty Ltd")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-
-                Text("Licensed under the MIT License")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-            }
-
-            HStack(spacing: 12) {
-                Button("Check for Updates…") {
-                    checkForUpdates()
-                }
-                .controlSize(.regular)
-
-                Button("Source Code") {
-                    if let url = URL(string: "https://github.com/SteamedHamsAU/snap") {
-                        NSWorkspace.shared.open(url)
-                    }
-                }
-                .controlSize(.regular)
-            }
-
-            Spacer()
-        }
-        .frame(maxWidth: .infinity)
     }
 }
 
