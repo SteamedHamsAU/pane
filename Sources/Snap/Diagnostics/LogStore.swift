@@ -44,6 +44,7 @@ final class LogStore: Sendable {
         var head: Int = 0
         var count: Int = 0
         var nextID: UInt64 = 0
+        var generation: UInt64 = 0
         let capacity: Int
 
         init(capacity: Int) {
@@ -70,6 +71,7 @@ final class LogStore: Sendable {
                 message: message
             )
             st.nextID += 1
+            st.generation += 1
 
             let index = (st.head + st.count) % st.capacity
             if st.count < st.capacity {
@@ -93,7 +95,12 @@ final class LogStore: Sendable {
             st.buffer = Array(repeating: nil, count: st.capacity)
             st.head = 0
             st.count = 0
+            st.generation += 1
         }
+    }
+
+    var generation: UInt64 {
+        state.withLock { $0.generation }
     }
 
     /// Formats all entries as a plain-text diagnostic report for clipboard export.
@@ -101,21 +108,24 @@ final class LogStore: Sendable {
         let snapshot = entries()
         guard !snapshot.isEmpty else { return "No diagnostic log entries." }
 
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
-
         var lines = [
             "Snap Diagnostic Log",
-            "Exported: \(formatter.string(from: Date()))",
+            "Exported: \(Self.reportFormatter.string(from: Date()))",
             "Entries: \(snapshot.count)",
             String(repeating: "─", count: 72)
         ]
 
         for entry in snapshot {
-            let ts = formatter.string(from: entry.timestamp)
+            let ts = Self.reportFormatter.string(from: entry.timestamp)
             lines.append("\(ts) [\(entry.level.rawValue)] \(entry.category): \(entry.message)")
         }
 
         return lines.joined(separator: "\n")
     }
+
+    private static let reportFormatter: DateFormatter = {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+        return fmt
+    }()
 }

@@ -43,6 +43,15 @@ final class DisplayMonitor: @unchecked Sendable {
     /// Returns whether a display ID is currently online. Injectable for testing.
     private let isOnline: @Sendable (CGDirectDisplayID) -> Bool
 
+    /// Returns the persistent UUID string for a display ID. Injectable for testing.
+    private let displayUUIDProvider: @Sendable (CGDirectDisplayID) -> String
+
+    /// Returns the display bounds for a display ID. Injectable for testing.
+    private let displayBoundsProvider: @Sendable (CGDirectDisplayID) -> CGRect
+
+    /// Returns the human-readable name for a display ID. Injectable for testing.
+    private let displayNameProvider: @MainActor (CGDirectDisplayID) -> String
+
     /// The C callback for `CGDisplayRegisterReconfigurationCallback`.
     /// Bridges to the Swift instance via an `Unmanaged` pointer in `userInfo`.
     private static let reconfigurationCallback: CGDisplayReconfigurationCallBack = { displayID, flags, userInfo in
@@ -65,12 +74,35 @@ final class DisplayMonitor: @unchecked Sendable {
                 return false
             }
             return ids.contains(displayID)
+        },
+        displayUUID: @escaping @Sendable (CGDirectDisplayID) -> String = { displayID in
+            guard let unmanagedUUID = CGDisplayCreateUUIDFromDisplayID(displayID) else {
+                return "unknown-\(displayID)"
+            }
+            let cfUUID = unmanagedUUID.takeRetainedValue()
+            guard let cfString = CFUUIDCreateString(nil, cfUUID) else {
+                return "unknown-\(displayID)"
+            }
+            return cfString as String
+        },
+        displayBounds: @escaping @Sendable (CGDirectDisplayID) -> CGRect = { CGDisplayBounds($0) },
+        displayName: @escaping @MainActor (CGDirectDisplayID) -> String = { displayID in
+            for screen in NSScreen.screens {
+                let screenID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
+                if screenID == displayID {
+                    return screen.localizedName
+                }
+            }
+            return "External Display"
         }
     ) {
         self.logger = SnapLogger(category: "DisplayMonitor", logStore: logStore)
         self.debounceInterval = debounceInterval
         self.isBuiltIn = isBuiltIn
         self.isOnline = isOnline
+        self.displayUUIDProvider = displayUUID
+        self.displayBoundsProvider = displayBounds
+        self.displayNameProvider = displayName
     }
 
     // MARK: - Monitoring lifecycle
@@ -146,7 +178,7 @@ final class DisplayMonitor: @unchecked Sendable {
         // The display might already be in a mirror set if macOS auto-mirrors on connect.
 
         let capturedUUID = displayUUID(for: displayID)
-        let bounds = CGDisplayBounds(displayID)
+        let bounds = displayBoundsProvider(displayID)
         let resolution = bounds.size
 
         logger.notice(
@@ -173,7 +205,7 @@ final class DisplayMonitor: @unchecked Sendable {
 
             // Re-read metadata post-debounce — values may have settled
             let name = monitor.displayName(for: displayID)
-            let settledBounds = CGDisplayBounds(displayID)
+            let settledBounds = monitor.displayBoundsProvider(displayID)
             monitor.delegate?.displayDidConnect(
                 id: displayID,
                 uuid: currentUUID,
@@ -209,28 +241,21 @@ final class DisplayMonitor: @unchecked Sendable {
 
     /// Returns a persistent UUID string for the given display.
     func displayUUID(for displayID: CGDirectDisplayID) -> String {
-        guard let unmanagedUUID = CGDisplayCreateUUIDFromDisplayID(displayID) else {
+        let uuid = displayUUIDProvider(displayID)
+        if uuid.hasPrefix("unknown-") {
             logger.warning("Could not create UUID for display \(displayID), using fallback")
-            return "unknown-\(displayID)"
         }
-        let cfUUID = unmanagedUUID.takeRetainedValue()
-        guard let cfString = CFUUIDCreateString(nil, cfUUID) else {
-            return "unknown-\(displayID)"
-        }
-        return cfString as String
+        return uuid
     }
 
     /// Returns the human-readable product name via NSScreen.
     @MainActor
     func displayName(for displayID: CGDirectDisplayID) -> String {
-        for screen in NSScreen.screens {
-            let screenID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
-            if screenID == displayID {
-                return screen.localizedName
-            }
+        let name = displayNameProvider(displayID)
+        if name == "External Display" {
+            logger.notice("No NSScreen match for display \(displayID), using fallback")
         }
-        logger.notice("No NSScreen match for display \(displayID), using fallback")
-        return "External Display"
+        return name
     }
 }
 

@@ -8,7 +8,7 @@ struct SettingsView: View {
     let logStore: LogStore
     let checkForUpdates: () -> Void
 
-    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @State private var launchAtLogin = false
     @State private var showNotification = UserDefaults.standard.object(
         forKey: "showToastOnKnownDisplay"
     ) as? Bool ?? true
@@ -17,6 +17,10 @@ struct SettingsView: View {
     @State private var settingsWindowID: ObjectIdentifier?
     @State private var selectedTab = 0
     @State private var showDebugDetails = false
+
+    private var logger: SnapLogger {
+        SnapLogger(category: "SettingsView", logStore: logStore)
+    }
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -35,6 +39,7 @@ struct SettingsView: View {
         }
         .frame(width: 560, height: 520)
         .onAppear {
+            launchAtLogin = SMAppService.mainApp.status == .enabled
             entries = configStore.allEntries()
         }
         .background(
@@ -81,7 +86,7 @@ struct SettingsView: View {
                             try SMAppService.mainApp.unregister()
                         }
                     } catch {
-                        print("Launch at login error: \(error)")
+                        logger.error("Launch at login error: \(error)")
                         launchAtLogin = SMAppService.mainApp.status == .enabled
                     }
                 }

@@ -10,7 +10,7 @@ struct DiagnosticsView: View {
     @State private var entries: [LogStore.Entry] = []
     @State private var selectedCategory: String?
     @State private var minimumLevel: LogStore.Level = .info
-    @State private var refreshTask: Task<Void, Never>?
+    @State private var lastGeneration: UInt64 = 0
 
     private var categories: [String] {
         Array(Set(entries.map(\.category))).sorted()
@@ -48,12 +48,17 @@ struct DiagnosticsView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
         }
-        .onAppear {
+        .task {
             refresh()
-            startAutoRefresh()
-        }
-        .onDisappear {
-            refreshTask?.cancel()
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled else { break }
+                let gen = logStore.generation
+                if gen != lastGeneration {
+                    lastGeneration = gen
+                    refresh()
+                }
+            }
         }
     }
 
@@ -155,18 +160,6 @@ struct DiagnosticsView: View {
     private func refresh() {
         entries = logStore.entries()
         resetCategoryIfNeeded()
-    }
-
-    private func startAutoRefresh() {
-        refreshTask?.cancel()
-        refreshTask = Task { @MainActor [logStore] in
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1))
-                guard !Task.isCancelled else { break }
-                entries = logStore.entries()
-                resetCategoryIfNeeded()
-            }
-        }
     }
 
     private func resetCategoryIfNeeded() {

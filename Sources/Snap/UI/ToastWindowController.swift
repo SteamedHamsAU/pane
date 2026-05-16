@@ -5,6 +5,7 @@ import UserNotifications
 @MainActor
 final class ToastWindowController: NSObject, UNUserNotificationCenterDelegate {
     private var onChangeTapped: (() -> Void)?
+    private var autoDismissTask: Task<Void, Never>?
     private static let categoryID = "DISPLAY_APPLIED"
     nonisolated private static let changeActionID = "CHANGE_ACTION"
 
@@ -69,15 +70,20 @@ final class ToastWindowController: NSObject, UNUserNotificationCenterDelegate {
                 return
             }
 
-            Task { @MainActor in
-                try? await Task.sleep(for: .seconds(duration))
-                UNUserNotificationCenter.current()
-                    .removeDeliveredNotifications(withIdentifiers: [identifier])
+            Task { @MainActor [weak self] in
+                self?.autoDismissTask?.cancel()
+                self?.autoDismissTask = Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(duration))
+                    UNUserNotificationCenter.current()
+                        .removeDeliveredNotifications(withIdentifiers: [identifier])
+                }
             }
         }
     }
 
     func dismiss() {
+        autoDismissTask?.cancel()
+        autoDismissTask = nil
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
     }
 
