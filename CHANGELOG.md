@@ -4,6 +4,13 @@ All notable changes to Snap will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.2-beta] — 2026-05-16
+
+### Fixed
+
+- "Request Permission" button silently no-ops on LSUIElement apps / debug builds — now falls back to opening System Settings when the macOS prompt is suppressed ([#89])
+- App activates to foreground before requesting notification authorization so the system dialog isn't hidden behind other windows
+
 ## [0.4.1-beta] — 2026-05-16
 
 ### Added
