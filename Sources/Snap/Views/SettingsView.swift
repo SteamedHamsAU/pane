@@ -174,9 +174,6 @@ struct SettingsView: View {
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             Task { @MainActor in
                 notificationAuthStatus = settings.authorizationStatus
-                if showNotification {
-                    requestNotificationPermissionIfNeeded()
-                }
             }
         }
     }
@@ -193,10 +190,10 @@ struct SettingsView: View {
     }
 
     private func requestNotificationPermission() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
-            Task { @MainActor in
-                notificationAuthStatus = granted ? .authorized : .denied
-            }
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in
+            // Re-read actual settings rather than assuming granted/denied,
+            // in case the request failed for a transient reason.
+            self.checkNotificationPermission()
         }
     }
 
