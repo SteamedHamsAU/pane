@@ -4,6 +4,32 @@ All notable changes to Snap will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0-beta] — 2026-05-16
+
+### Added
+
+- In-app diagnostics logging with ring buffer and new Settings → Diagnostics tab — filter by category/level, auto-refresh, clipboard export ([#79])
+- `SnapLogger` dual-write logger: messages go to both `os.Logger` (Console.app) and the in-app ring buffer
+- Architecture Decision Records in `docs/decisions/` with template and index
+- ADR-001: documents intentional `privacy: .public` on os.Logger calls
+- Copilot code review instructions in `.github/copilot-instructions.md`
+
+### Changed
+
+- All logging switched from `os.Logger` to `SnapLogger` across AppDelegate, DisplayMonitor, DisplayConfigurator, DisplayConfigStore, and ToastWindowController
+- DisplayMonitor display lookup functions (UUID, name, bounds) are now injectable for test isolation
+- DiagnosticsView uses SwiftUI `.task` modifier with generation-counter optimization
+- `LogStore.Level`, `LogStore.Entry`, and `SnapLogger` now explicitly declare `Sendable`
+
+### Fixed
+
+- Cancel pending debounce tasks on `stopMonitoring()` to prevent stale delegate calls after shutdown ([#80])
+- Implicit strong `self` capture in `[weak self]` Task closure in AppDelegate toast handler
+- Stale category filter in DiagnosticsView after ring buffer eviction or clear
+- Uncancelled auto-dismiss Task in ToastWindowController — now stored and cancelled on `show()`/`dismiss()`
+- `print()` in SettingsView error path replaced with `SnapLogger`
+- `launchAtLogin` toggle now reads `SMAppService` status in `.onAppear` instead of at struct init
+
 ## [0.3.3-alpha] — 2026-05-12
 
 ### Fixed
