@@ -191,11 +191,20 @@ struct SettingsView: View {
     }
 
     private func requestNotificationPermission() {
+        // Ensure the app is frontmost so macOS shows the permission dialog
+        NSApp.activate(ignoringOtherApps: true)
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in
-            // Re-read actual settings rather than assuming granted/denied,
-            // in case the request failed for a transient reason.
-            Task { @MainActor in
-                self.checkNotificationPermission()
+            UNUserNotificationCenter.current().getNotificationSettings { settings in
+                Task { @MainActor in
+                    self.notificationAuthStatus = settings.authorizationStatus
+                    // If still .notDetermined, macOS silently refused to show
+                    // the prompt (common with LSUIElement apps or debug builds).
+                    // Fall back to System Settings.
+                    if settings.authorizationStatus == .notDetermined {
+                        self.logger.warning("Notification prompt not shown — falling back to System Settings")
+                        self.openNotificationSettings()
+                    }
+                }
             }
         }
     }
