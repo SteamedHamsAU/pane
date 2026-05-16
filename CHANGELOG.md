@@ -4,6 +4,20 @@ All notable changes to Snap will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.1-beta] — 2026-05-16
+
+### Added
+
+- Diagnostic logging toggle in Settings → General — defaults to OFF, controls Diagnostics tab visibility and `LogStore` collection; `os.Logger` output stays active regardless ([#89])
+- Notification permission status in Settings → General — shows authorized/denied/not-determined state with actionable button (request permission or open System Settings) ([#89])
+- Permission status auto-refreshes when Settings window regains focus after returning from System Settings ([#89])
+- `AboutView` extracted to its own file for cleaner code organization ([#89])
+
+### Changed
+
+- `requestAuthorization` moved from `ToastWindowController.init` to two intentional call sites: AppDelegate at first launch (guarded by `.notDetermined`) and Settings UI (user-driven) ([#89])
+- `LogStore` now accepts an `enabled` parameter (default: `false`) and gates `append()` accordingly ([#89])
+
 ## [0.4.0-beta] — 2026-05-16
 
 ### Added
