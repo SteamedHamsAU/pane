@@ -8,13 +8,9 @@ import os
 final class DisplayConfigStore {
     private var configurations: [String: DisplayConfiguration] = [:]
     private let fileURL: URL
+    private let logger: SnapLogger
 
-    private static let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "au.steamedhams.snap",
-        category: "DisplayConfigStore"
-    )
-
-    convenience init() {
+    convenience init(logStore: LogStore = LogStore()) {
         let appSupport: URL
         do {
             appSupport = try FileManager.default.url(
@@ -24,22 +20,27 @@ final class DisplayConfigStore {
                 create: true
             )
         } catch {
-            Self.logger.error("Failed to resolve Application Support directory: \(error)")
+            // SnapLogger isn't available before self.init; use os.Logger for this unlikely fallback.
+            Logger(
+                subsystem: Bundle.main.bundleIdentifier ?? "au.steamedhams.snap",
+                category: "DisplayConfigStore"
+            ).error("Failed to resolve Application Support directory: \(error.localizedDescription, privacy: .public)")
             appSupport = FileManager.default.homeDirectoryForCurrentUser
                 .appendingPathComponent("Library/Application Support", isDirectory: true)
         }
         let snapDir = appSupport.appendingPathComponent("Snap", isDirectory: true)
-        self.init(fileURL: snapDir.appendingPathComponent("displays.plist"))
+        self.init(fileURL: snapDir.appendingPathComponent("displays.plist"), logStore: logStore)
     }
 
-    init(fileURL: URL) {
+    init(fileURL: URL, logStore: LogStore = LogStore()) {
         self.fileURL = fileURL
+        self.logger = SnapLogger(category: "DisplayConfigStore", logStore: logStore)
 
         let parentDir = fileURL.deletingLastPathComponent()
         do {
             try FileManager.default.createDirectory(at: parentDir, withIntermediateDirectories: true)
         } catch {
-            Self.logger.error("Failed to create config directory: \(error)")
+            logger.error("Failed to create config directory: \(error)")
         }
 
         load()
@@ -82,7 +83,7 @@ final class DisplayConfigStore {
                 // No file yet — first launch, not an error
                 return
             }
-            Self.logger.error("Failed to read config file: \(error)")
+            logger.error("Failed to read config file: \(error)")
             return
         }
 
@@ -92,7 +93,7 @@ final class DisplayConfigStore {
                 from: data
             )
         } catch {
-            Self.logger.error("Failed to decode config file: \(error)")
+            logger.error("Failed to decode config file: \(error)")
         }
     }
 
@@ -103,7 +104,7 @@ final class DisplayConfigStore {
             let data = try encoder.encode(configurations)
             try data.write(to: fileURL, options: .atomic)
         } catch {
-            Self.logger.error("Failed to persist config file: \(error)")
+            logger.error("Failed to persist config file: \(error)")
         }
     }
 }

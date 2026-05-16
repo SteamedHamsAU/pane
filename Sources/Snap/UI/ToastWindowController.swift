@@ -1,20 +1,18 @@
 import AppKit
-import os
 import UserNotifications
 
 /// Shows native macOS notifications for known-display auto-apply events.
 @MainActor
 final class ToastWindowController: NSObject, UNUserNotificationCenterDelegate {
     private var onChangeTapped: (() -> Void)?
+    private var autoDismissTask: Task<Void, Never>?
     private static let categoryID = "DISPLAY_APPLIED"
     nonisolated private static let changeActionID = "CHANGE_ACTION"
 
-    private static let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "au.steamedhams.snap",
-        category: "ToastWindowController"
-    )
+    private let logger: SnapLogger
 
-    override init() {
+    init(logStore: LogStore) {
+        self.logger = SnapLogger(category: "ToastWindowController", logStore: logStore)
         super.init()
         let center = UNUserNotificationCenter.current()
         center.delegate = self
@@ -31,11 +29,12 @@ final class ToastWindowController: NSObject, UNUserNotificationCenterDelegate {
         )
         center.setNotificationCategories([category])
 
+        let log = logger
         center.requestAuthorization(options: [.alert, .sound]) { granted, error in
             if let error {
-                Self.logger.error("Notification auth error: \(error)")
+                log.error("Notification auth error: \(error)")
             }
-            Self.logger.notice("Notification permission granted: \(granted)")
+            log.notice("Notification permission granted: \(granted)")
         }
     }
 
@@ -60,9 +59,10 @@ final class ToastWindowController: NSObject, UNUserNotificationCenterDelegate {
             trigger: nil
         )
 
+        let log = logger
         UNUserNotificationCenter.current().add(request) { error in
             if let error {
-                Self.logger.error("Failed to add notification: \(error)")
+                log.error("Failed to add notification: \(error)")
                 return
             }
 
@@ -70,15 +70,20 @@ final class ToastWindowController: NSObject, UNUserNotificationCenterDelegate {
                 return
             }
 
-            Task { @MainActor in
-                try? await Task.sleep(for: .seconds(duration))
-                UNUserNotificationCenter.current()
-                    .removeDeliveredNotifications(withIdentifiers: [identifier])
+            Task { @MainActor [weak self] in
+                self?.autoDismissTask?.cancel()
+                self?.autoDismissTask = Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(duration))
+                    UNUserNotificationCenter.current()
+                        .removeDeliveredNotifications(withIdentifiers: [identifier])
+                }
             }
         }
     }
 
     func dismiss() {
+        autoDismissTask?.cancel()
+        autoDismissTask = nil
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
     }
 

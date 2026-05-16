@@ -44,7 +44,10 @@ struct DisplayMonitorDebounceTests {
         let monitor = DisplayMonitor(
             debounceInterval: testDebounce,
             isBuiltIn: { $0 == CGMainDisplayID() },
-            isOnline: isOnline
+            isOnline: isOnline,
+            displayUUID: { "fake-uuid-\($0)" },
+            displayBounds: { _ in CGRect(x: 0, y: 0, width: 2560, height: 1440) },
+            displayName: { _ in "Fake Display" }
         )
         let delegate = MockDisplayMonitorDelegate()
         monitor.delegate = delegate
@@ -66,6 +69,9 @@ struct DisplayMonitorDebounceTests {
 
         #expect(delegate.connectCalls.count == 1)
         #expect(delegate.connectCalls.first?.id == fakeDisplayA)
+        #expect(delegate.connectCalls.first?.uuid == "fake-uuid-999")
+        #expect(delegate.connectCalls.first?.name == "Fake Display")
+        #expect(delegate.connectCalls.first?.resolution == CGSize(width: 2560, height: 1440))
     }
 
     @Test("Rapid connect events for same display coalesce into one")
@@ -134,7 +140,10 @@ struct DisplayMonitorDebounceTests {
         let monitor = DisplayMonitor(
             debounceInterval: testDebounce,
             isBuiltIn: { $0 == builtInID },
-            isOnline: { _ in true }
+            isOnline: { _ in true },
+            displayUUID: { "fake-uuid-\($0)" },
+            displayBounds: { _ in CGRect(x: 0, y: 0, width: 2560, height: 1440) },
+            displayName: { _ in "Fake Display" }
         )
         let delegate = MockDisplayMonitorDelegate()
         monitor.delegate = delegate

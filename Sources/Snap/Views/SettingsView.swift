@@ -5,9 +5,10 @@ import SwiftUI
 @MainActor
 struct SettingsView: View {
     let configStore: DisplayConfigStore
+    let logStore: LogStore
     let checkForUpdates: () -> Void
 
-    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @State private var launchAtLogin = false
     @State private var showNotification = UserDefaults.standard.object(
         forKey: "showToastOnKnownDisplay"
     ) as? Bool ?? true
@@ -17,6 +18,10 @@ struct SettingsView: View {
     @State private var selectedTab = 0
     @State private var showDebugDetails = false
 
+    private var logger: SnapLogger {
+        SnapLogger(category: "SettingsView", logStore: logStore)
+    }
+
     var body: some View {
         TabView(selection: $selectedTab) {
             generalTab
@@ -25,12 +30,16 @@ struct SettingsView: View {
             displaysTab
                 .tabItem { Label("Displays", systemImage: "display") }
                 .tag(1)
+            DiagnosticsView(logStore: logStore)
+                .tabItem { Label("Diagnostics", systemImage: "stethoscope") }
+                .tag(2)
             aboutTab
                 .tabItem { Label("About", systemImage: "info.circle") }
-                .tag(2)
+                .tag(3)
         }
-        .frame(width: 460, height: 520)
+        .frame(width: 560, height: 520)
         .onAppear {
+            launchAtLogin = SMAppService.mainApp.status == .enabled
             entries = configStore.allEntries()
         }
         .background(
@@ -77,7 +86,7 @@ struct SettingsView: View {
                             try SMAppService.mainApp.unregister()
                         }
                     } catch {
-                        print("Launch at login error: \(error)")
+                        logger.error("Launch at login error: \(error)")
                         launchAtLogin = SMAppService.mainApp.status == .enabled
                     }
                 }

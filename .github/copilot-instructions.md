@@ -6,6 +6,10 @@
 - All async code uses Swift Concurrency: async/await, actors, structured concurrency.
 - Universal binary: Apple Silicon + Intel (`arm64 x86_64`).
 
+## Code Review
+Design decisions are documented as ADRs in `docs/decisions/`. Key rules:
+- Do not flag `privacy: .public` on os.Logger calls — intentional per ADR-001.
+
 ## Architecture
 - AppKit + SwiftUI hybrid. The app uses `NSApplicationDelegate`, `NSStatusItem`, `NSPanel`, and `NSHostingView` to host SwiftUI views.
 - No pure SwiftUI `@main App` lifecycle — the entry point is `SnapApp.swift` using `@main` with a custom `static func main()` that calls `NSApplication.shared.run()`.
@@ -70,21 +74,10 @@
 
 ## Build & Run
 
-After making code changes, always build and verify. Kill existing instances before re-launching.
-
 ```bash
-# Regenerate Xcode project from project.yml (if project.yml changed)
-xcodegen generate
-
-# Build
+xcodegen generate  # only if project.yml changed
 xcodebuild -project Snap.xcodeproj -scheme Snap -configuration Debug build
-
-# Run (kill existing first)
-pkill -x Snap 2>/dev/null; sleep 0.5
-open "$(xcodebuild -project Snap.xcodeproj -scheme Snap -configuration Debug -showBuildSettings 2>/dev/null | grep ' BUILT_PRODUCTS_DIR' | awk '{print $3}')/Snap.app"
-
-# Tests
 xcodebuild -project Snap.xcodeproj -scheme Snap -configuration Debug test
 ```
 
-For display-related changes, remind Luke to plug/unplug an external display to test detection.
+For display changes, test with external display plug/unplug.
