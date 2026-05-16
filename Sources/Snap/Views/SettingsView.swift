@@ -68,9 +68,10 @@ struct SettingsView: View {
                 named: NSWindow.didBecomeKeyNotification,
                 object: window
             ) {
-                _ = notification // unused payload; we just care that our window became key
+                _ = notification
                 await MainActor.run {
                     entries = configStore.allEntries()
+                    checkNotificationPermission()
                 }
             }
         }
@@ -193,7 +194,9 @@ struct SettingsView: View {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in
             // Re-read actual settings rather than assuming granted/denied,
             // in case the request failed for a transient reason.
-            self.checkNotificationPermission()
+            Task { @MainActor in
+                self.checkNotificationPermission()
+            }
         }
     }
 
