@@ -13,6 +13,15 @@ protocol DisplayMonitorDelegate: AnyObject {
         resolution: CGSize
     )
     func displayDidDisconnect(id: CGDirectDisplayID)
+
+    /// Called when an external display enters a mirror set without being freshly
+    /// connected — typically caused by macOS resetting to mirrored on wake/unlock.
+    func displayDidEnterMirrorSet(
+        id: CGDirectDisplayID,
+        uuid: String,
+        name: String,
+        resolution: CGSize
+    )
 }
 
 /// Registers for CGDisplay reconfiguration events and dispatches to delegate.
@@ -31,6 +40,10 @@ final class DisplayMonitor: @unchecked Sendable {
     /// Tracks pending debounce tasks per display ID so rapid events are coalesced.
     @MainActor private var pendingEvents: [CGDirectDisplayID: Task<Void, Never>] = [:]
 
+    /// Tracks pending mirror-correction debounce tasks separately from connect/disconnect
+    /// so that mirror events never cancel a pending connect or disconnect.
+    @MainActor private var pendingMirrorCorrections: [CGDirectDisplayID: Task<Void, Never>] = [:]
+
     /// Set when monitoring stops; checked by in-flight debounce tasks to bail out.
     @MainActor private var isStopped = false
 
@@ -42,6 +55,9 @@ final class DisplayMonitor: @unchecked Sendable {
 
     /// Returns whether a display ID is currently online. Injectable for testing.
     private let isOnline: @Sendable (CGDirectDisplayID) -> Bool
+
+    /// Returns whether a display ID is currently in a mirror set. Injectable for testing.
+    private let isInMirrorSet: @Sendable (CGDirectDisplayID) -> Bool
 
     /// Returns the persistent UUID string for a display ID. Injectable for testing.
     private let displayUUIDProvider: @Sendable (CGDirectDisplayID) -> String
@@ -75,6 +91,7 @@ final class DisplayMonitor: @unchecked Sendable {
             }
             return ids.contains(displayID)
         },
+        isInMirrorSet: @escaping @Sendable (CGDirectDisplayID) -> Bool = { CGDisplayIsInMirrorSet($0) != 0 },
         displayUUID: @escaping @Sendable (CGDirectDisplayID) -> String = { displayID in
             guard let unmanagedUUID = CGDisplayCreateUUIDFromDisplayID(displayID) else {
                 return "unknown-\(displayID)"
@@ -100,6 +117,7 @@ final class DisplayMonitor: @unchecked Sendable {
         self.debounceInterval = debounceInterval
         self.isBuiltIn = isBuiltIn
         self.isOnline = isOnline
+        self.isInMirrorSet = isInMirrorSet
         self.displayUUIDProvider = displayUUID
         self.displayBoundsProvider = displayBounds
         self.displayNameProvider = displayName
@@ -137,6 +155,10 @@ final class DisplayMonitor: @unchecked Sendable {
             task.cancel()
         }
         pendingEvents.removeAll()
+        for task in pendingMirrorCorrections.values {
+            task.cancel()
+        }
+        pendingMirrorCorrections.removeAll()
     }
 
     deinit {
@@ -166,13 +188,29 @@ final class DisplayMonitor: @unchecked Sendable {
 
         if flags.contains(.removeFlag) {
             logger.notice("External display disconnected: \(displayID)")
+            Task { @MainActor [weak self] in
+                self?.cancelPendingMirrorCorrection(for: displayID)
+            }
             dispatchDebounced(displayID: displayID) { monitor in
                 monitor.delegate?.displayDidDisconnect(id: displayID)
             }
             return
         }
 
+        // Detect wake-from-sleep mirror: macOS can reset to mirrored without
+        // add/remove flags. Fire a separate delegate method so the app can
+        // re-apply the user's saved extend config.
+        if flags.contains(.mirrorFlag), !flags.contains(.addFlag), !flags.contains(.beginConfigurationFlag) {
+            handleMirrorSetEntry(displayID: displayID)
+            return
+        }
+
         guard flags.contains(.addFlag) else { return }
+
+        // A real connect supersedes any pending mirror correction
+        Task { @MainActor [weak self] in
+            self?.cancelPendingMirrorCorrection(for: displayID)
+        }
 
         // Don't filter on mirror set here — macOS may briefly mirror during reconfiguration.
         // The display might already be in a mirror set if macOS auto-mirrors on connect.
@@ -234,6 +272,81 @@ final class DisplayMonitor: @unchecked Sendable {
                 self.pendingEvents.removeValue(forKey: displayID)
                 action(self)
             }
+        }
+    }
+
+    /// Debounces mirror-correction events separately from connect/disconnect
+    /// so that a mirror event never cancels a pending connect or disconnect.
+    private func dispatchMirrorCorrection(
+        displayID: CGDirectDisplayID,
+        action: @escaping @MainActor (DisplayMonitor) -> Void
+    ) {
+        Task { @MainActor [weak self] in
+            guard let self, !self.isStopped else { return }
+            self.pendingMirrorCorrections[displayID]?.cancel()
+            self.pendingMirrorCorrections[displayID] = Task { @MainActor [weak self] in
+                guard let self else { return }
+                try? await Task.sleep(for: self.debounceInterval)
+                guard !Task.isCancelled, !self.isStopped else { return }
+                self.pendingMirrorCorrections.removeValue(forKey: displayID)
+                action(self)
+            }
+        }
+    }
+
+    /// Cancels any pending mirror correction for the given display, e.g. when a
+    /// real connect or disconnect event supersedes it.
+    @MainActor
+    private func cancelPendingMirrorCorrection(for displayID: CGDirectDisplayID) {
+        pendingMirrorCorrections[displayID]?.cancel()
+        pendingMirrorCorrections.removeValue(forKey: displayID)
+    }
+
+    // MARK: - Mirror set detection
+
+    /// Handles a display entering a mirror set without being freshly connected
+    /// (typically macOS resetting to mirrored on wake/unlock).
+    private func handleMirrorSetEntry(displayID: CGDirectDisplayID) {
+        let capturedUUID = displayUUID(for: displayID)
+        let bounds = displayBoundsProvider(displayID)
+        let resolution = bounds.size
+
+        logger.notice(
+            "Display \(displayID) entered mirror set (wake/reconfigure): "
+                + "[\(capturedUUID)] \(Int(resolution.width))×\(Int(resolution.height))"
+        )
+
+        let isOnline = self.isOnline
+        let isInMirrorSet = self.isInMirrorSet
+        dispatchMirrorCorrection(displayID: displayID) { monitor in
+            guard isOnline(displayID) else {
+                monitor.logger.notice(
+                    "Display \(displayID) went offline during debounce — dropping mirror event"
+                )
+                return
+            }
+            guard isInMirrorSet(displayID) else {
+                monitor.logger.notice(
+                    "Display \(displayID) no longer mirrored after debounce — dropping"
+                )
+                return
+            }
+            let currentUUID = monitor.displayUUID(for: displayID)
+            guard currentUUID == capturedUUID else {
+                monitor.logger.notice(
+                    "Display \(displayID) UUID changed during debounce — dropping mirror event"
+                )
+                return
+            }
+
+            let name = monitor.displayName(for: displayID)
+            let settledBounds = monitor.displayBoundsProvider(displayID)
+            monitor.delegate?.displayDidEnterMirrorSet(
+                id: displayID,
+                uuid: currentUUID,
+                name: name,
+                resolution: settledBounds.size
+            )
         }
     }
 
