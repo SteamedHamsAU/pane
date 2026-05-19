@@ -66,7 +66,7 @@ for adr in "$DECISIONS_DIR"/[0-9]*.md; do
     # Extract ADR number from filename
     adr_num=$(basename "$adr" | grep -oE '^[0-9]+')
 
-    # Extract review-rules (lines starting with "  - " after "review-rules:")
+    # Extract review-rules from front matter only (not from body prose)
     in_rules=false
     while IFS= read -r line; do
         if [[ "$line" =~ ^review-rules: ]]; then
@@ -81,7 +81,7 @@ for adr in "$DECISIONS_DIR"/[0-9]*.md; do
                 break
             fi
         fi
-    done < "$adr"
+    done <<< "$frontmatter"
 done
 
 if [[ -n "$adr_rules" ]]; then
@@ -110,7 +110,7 @@ if $check_mode; then
         exit 1
     fi
     if ! diff -q <(echo "$output") "$OUTPUT" > /dev/null 2>&1; then
-        echo "ERROR: $OUTPUT is stale. Run scripts/generate-review-instructions.sh to update." >&2
+        echo "ERROR: $OUTPUT is stale. Run Scripts/generate-review-instructions.sh to update." >&2
         diff <(echo "$output") "$OUTPUT" >&2 || true
         exit 1
     fi
