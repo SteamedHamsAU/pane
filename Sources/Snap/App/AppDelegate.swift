@@ -165,7 +165,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        DisplayConfigurator.apply(config, primaryID: CGMainDisplayID(), externalID: displayID, logger: logger)
+        DisplayConfigurator.apply(config, primaryID: CGMainDisplayID(), externalID: displayID, externalResolution: resolution, logger: logger)
 
         // Save the config so the display appears in Settings.
         // rememberThisDisplay controls whether to auto-apply silently next time.
@@ -287,7 +287,7 @@ extension AppDelegate: DisplayMonitorDelegate {
 
         if let savedConfig = configStore.configuration(for: uuid), savedConfig.rememberThisDisplay {
             // Known display with auto-apply — apply silently
-            DisplayConfigurator.apply(savedConfig, primaryID: CGMainDisplayID(), externalID: id, logger: logger)
+            DisplayConfigurator.apply(savedConfig, primaryID: CGMainDisplayID(), externalID: id, externalResolution: resolution, logger: logger)
 
             // Update lastConnected timestamp
             var updatedConfig = savedConfig

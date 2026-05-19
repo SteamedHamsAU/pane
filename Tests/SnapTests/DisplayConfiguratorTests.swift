@@ -78,6 +78,7 @@ struct DisplayConfiguratorTests {
     private let externalID: CGDirectDisplayID = 2
     private let internalBounds = CGRect(x: 0, y: 0, width: 1440, height: 900)
     private let externalBounds = CGRect(x: 0, y: 0, width: 2560, height: 1440)
+    private var externalResolution: CGSize { externalBounds.size }
     private let logger = SnapLogger(category: "Test", logStore: LogStore())
 
     private func makeTransactor() -> MockDisplayTransactor {
@@ -111,6 +112,7 @@ struct DisplayConfiguratorTests {
             config,
             primaryID: primaryID,
             externalID: externalID,
+            externalResolution: externalResolution,
             transactor: mock,
             logger: logger
         )
@@ -131,6 +133,7 @@ struct DisplayConfiguratorTests {
             config,
             primaryID: primaryID,
             externalID: externalID,
+            externalResolution: externalResolution,
             transactor: mock,
             logger: logger
         )
@@ -151,6 +154,7 @@ struct DisplayConfiguratorTests {
             config,
             primaryID: primaryID,
             externalID: externalID,
+            externalResolution: externalResolution,
             transactor: mock,
             logger: logger
         )
@@ -172,6 +176,7 @@ struct DisplayConfiguratorTests {
             config,
             primaryID: primaryID,
             externalID: externalID,
+            externalResolution: externalResolution,
             transactor: mock,
             logger: logger
         )
@@ -193,6 +198,7 @@ struct DisplayConfiguratorTests {
             config,
             primaryID: primaryID,
             externalID: externalID,
+            externalResolution: externalResolution,
             transactor: mock,
             logger: logger
         )
@@ -212,6 +218,7 @@ struct DisplayConfiguratorTests {
             config,
             primaryID: primaryID,
             externalID: externalID,
+            externalResolution: externalResolution,
             transactor: mock,
             logger: logger
         )
@@ -234,6 +241,7 @@ struct DisplayConfiguratorTests {
             config,
             primaryID: primaryID,
             externalID: externalID,
+            externalResolution: externalResolution,
             transactor: mock,
             logger: logger
         )
@@ -255,6 +263,7 @@ struct DisplayConfiguratorTests {
             config,
             primaryID: primaryID,
             externalID: externalID,
+            externalResolution: externalResolution,
             transactor: mock,
             logger: logger
         )
@@ -272,6 +281,7 @@ struct DisplayConfiguratorTests {
             config,
             primaryID: primaryID,
             externalID: externalID,
+            externalResolution: externalResolution,
             transactor: mock,
             logger: logger
         )
@@ -289,6 +299,7 @@ struct DisplayConfiguratorTests {
             config,
             primaryID: primaryID,
             externalID: externalID,
+            externalResolution: externalResolution,
             transactor: mock,
             logger: logger
         )
@@ -299,5 +310,34 @@ struct DisplayConfiguratorTests {
         #expect(call.display == externalID)
         #expect(call.x == 1440)
         #expect(call.y == -270)
+    }
+
+    @Test("Unmirror path uses passed-in resolution, not stale displayBounds")
+    func extendUnmirrorUsesPassedResolution() {
+        let mock = makeTransactor()
+        mock.mirrorSetDisplays.insert(externalID)
+        // Simulate stale bounds: mock returns MacBook-sized bounds for external
+        // (what CGDisplayBounds would return before macOS settles after unmirror)
+        mock.boundsMap[externalID] = internalBounds
+
+        let realResolution = CGSize(width: 3840, height: 1600)
+        let config = makeConfig(mode: .extend, preset: .externalAbove)
+
+        DisplayConfigurator.apply(
+            config,
+            primaryID: primaryID,
+            externalID: externalID,
+            externalResolution: realResolution,
+            transactor: mock,
+            logger: logger
+        )
+
+        #expect(mock.originCalls.count == 1)
+        let call = mock.originCalls[0]
+        // Should use realResolution (3840×1600), not stale internalBounds (1440×900)
+        // x = (1440/2 - 3840/2) = -1200
+        // y = (0 - 1600) = -1600
+        #expect(call.x == -1200)
+        #expect(call.y == -1600)
     }
 }
