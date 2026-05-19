@@ -328,8 +328,8 @@ struct DisplayMonitorDebounceTests {
         #expect(delegate.mirrorCalls.count == 1)
     }
 
-    @Test("Connect event does not cancel pending mirror correction and vice versa")
-    func mirrorAndConnectAreIndependent() async throws {
+    @Test("Connect event cancels pending mirror correction")
+    func connectCancelsMirrorCorrection() async throws {
         let (monitor, delegate) = makeSUT(isInMirrorSet: { _ in true })
 
         // Fire mirror event, then connect event for the SAME display within debounce

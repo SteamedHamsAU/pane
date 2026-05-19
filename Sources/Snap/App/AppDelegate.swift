@@ -384,11 +384,15 @@ extension AppDelegate: DisplayMonitorDelegate {
         logger.info("Re-applying extend preset after unexpected mirror: \(savedConfig.extendPreset.rawValue)")
 
         // Use saved resolution when available — CGDisplayBounds returns
-        // mirrored (primary) dimensions while in a mirror set.
+        // mirrored (primary) dimensions while in a mirror set. Fall back to
+        // currentDisplay's resolution from the original connect if the saved
+        // config predates resolution tracking.
         let savedWidth = savedConfig.resolutionWidth
         let savedHeight = savedConfig.resolutionHeight
         let correctedResolution = if let savedWidth, let savedHeight {
             CGSize(width: savedWidth, height: savedHeight)
+        } else if let priorResolution = currentDisplay?.resolution {
+            priorResolution
         } else {
             resolution
         }
