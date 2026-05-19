@@ -78,7 +78,10 @@ struct DisplayConfiguratorTests {
     private let externalID: CGDirectDisplayID = 2
     private let internalBounds = CGRect(x: 0, y: 0, width: 1440, height: 900)
     private let externalBounds = CGRect(x: 0, y: 0, width: 2560, height: 1440)
-    private var externalResolution: CGSize { externalBounds.size }
+    private var externalResolution: CGSize {
+        externalBounds.size
+    }
+
     private let logger = SnapLogger(category: "Test", logStore: LogStore())
 
     private func makeTransactor() -> MockDisplayTransactor {
