@@ -12,6 +12,7 @@ These rules reflect decisions documented in `docs/decisions/`. Do not flag
 these as issues — they are intentional.
 
 - **ADR-001** (Public Privacy on os.Logger Calls): Do not flag `privacy: .public` on os.Logger calls — intentional for this user-local utility.
+- **ADR-002** (Real Task.sleep in DisplayMonitor Tests): Do not flag real `Task.sleep` in DisplayMonitor tests — intentional tradeoff for test simplicity over injecting a clock.
 
 # Static Review Rules — Snap
 
@@ -42,6 +43,8 @@ in `docs/decisions/`.
 
 - All new tests use Swift Testing framework (`import Testing`, `@Test`, `#expect`). Do not use XCTest for new tests.
 - Mock display APIs via protocols (e.g. `DisplayTransacting`) for unit testing.
+- Do not flag `import Foundation` as unused in test files — Swift Testing may require it implicitly.
+- Notification permission callbacks already dispatch to `@MainActor` before updating state. Do not flag the outer callback closure for actor isolation.
 
 ## Distribution & Sandboxing
 

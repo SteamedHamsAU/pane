@@ -27,6 +27,8 @@ in `docs/decisions/`.
 
 - All new tests use Swift Testing framework (`import Testing`, `@Test`, `#expect`). Do not use XCTest for new tests.
 - Mock display APIs via protocols (e.g. `DisplayTransacting`) for unit testing.
+- Do not flag `import Foundation` as unused in test files — Swift Testing may require it implicitly.
+- Notification permission callbacks already dispatch to `@MainActor` before updating state. Do not flag the outer callback closure for actor isolation.
 
 ## Distribution & Sandboxing
 
