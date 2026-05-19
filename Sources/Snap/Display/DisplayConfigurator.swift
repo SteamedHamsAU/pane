@@ -60,10 +60,15 @@ enum DisplayConfigurator {
     ///
     /// Wraps all changes in `beginConfiguration` / `completeConfiguration` transactions
     /// driven by the provided `transactor`. The default uses real CGDisplay APIs.
+    ///
+    /// - Parameter externalResolution: The known resolution of the external display.
+    ///   Used instead of reading `CGDisplayBounds` for the external display, which can
+    ///   return stale values immediately after unmirror commits.
     static func apply(
         _ config: DisplayConfiguration,
         primaryID: CGDirectDisplayID,
         externalID: CGDirectDisplayID,
+        externalResolution: CGSize,
         transactor: DisplayTransacting = SystemDisplayTransactor(),
         logger: SnapLogger
     ) {
@@ -79,6 +84,7 @@ enum DisplayConfigurator {
                 cfg: cfg,
                 primaryID: primaryID,
                 externalID: externalID,
+                externalResolution: externalResolution,
                 transactor: transactor,
                 logger: logger
             )
@@ -102,6 +108,7 @@ enum DisplayConfigurator {
         cfg: CGDisplayConfigRef,
         primaryID: CGDirectDisplayID,
         externalID: CGDirectDisplayID,
+        externalResolution: CGSize,
         transactor: DisplayTransacting,
         logger: SnapLogger
     ) {
@@ -127,7 +134,10 @@ enum DisplayConfigurator {
         }
 
         let internalBounds = transactor.displayBounds(primaryID)
-        let externalBounds = transactor.displayBounds(externalID)
+        // Use the caller-supplied resolution instead of CGDisplayBounds for the
+        // external display. After an unmirror commit, CGDisplayBounds can return
+        // stale (mirrored) geometry before macOS finishes settling.
+        let externalBounds = CGRect(origin: .zero, size: externalResolution)
         let origin = switch config.extendPreset {
         case .externalRight:
             CGPoint(
