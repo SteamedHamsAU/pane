@@ -1,6 +1,8 @@
 ---
 status: decided
 date: 2026-05-16
+review-rules:
+  - "Do not flag `privacy: .public` on os.Logger calls — intentional for this user-local utility."
 ---
 
 # Public Privacy on os.Logger Calls

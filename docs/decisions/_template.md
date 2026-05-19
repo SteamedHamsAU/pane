@@ -1,6 +1,8 @@
 ---
 status: decided           # decided | open | revisiting | superseded
 date: YYYY-MM-DD
+# review-rules:           # Optional — list of review instructions derived from this decision.
+#   - "Example: Do not flag X — intentional per this ADR."
 ---
 
 # [Decision Title]

@@ -7,8 +7,15 @@
 - Universal binary: Apple Silicon + Intel (`arm64 x86_64`).
 
 ## Code Review
-Design decisions are documented as ADRs in `docs/decisions/`. Key rules:
-- Do not flag `privacy: .public` on os.Logger calls — intentional per ADR-001.
+Design decisions are documented as ADRs in `docs/decisions/`. Each ADR may include
+a `review-rules` list in its YAML front matter — these are extracted into
+`.github/instructions/code-review.instructions.md` by `Scripts/generate-review-instructions.sh`.
+
+Run the generator after adding or updating an ADR:
+```bash
+Scripts/generate-review-instructions.sh        # regenerate
+Scripts/generate-review-instructions.sh --check # verify freshness (CI)
+```
 
 ## Architecture
 - AppKit + SwiftUI hybrid. The app uses `NSApplicationDelegate`, `NSStatusItem`, `NSPanel`, and `NSHostingView` to host SwiftUI views.
