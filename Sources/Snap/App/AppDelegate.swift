@@ -362,4 +362,72 @@ extension AppDelegate: DisplayMonitorDelegate {
         currentDisplay = nil
         menuBarController?.updateCurrentDisplay(nil)
     }
+
+    func displayDidEnterMirrorSet(
+        id: CGDirectDisplayID,
+        uuid: String,
+        name: String,
+        resolution: CGSize
+    ) {
+        logger.notice("Display entered mirror set: \(name) [\(uuid)]")
+
+        // Dismiss any stale prompt (e.g. from a previous connect cycle)
+        promptController?.dismiss()
+
+        guard let savedConfig = configStore.configuration(for: uuid),
+              savedConfig.rememberThisDisplay,
+              savedConfig.mode == .extend
+        else {
+            return
+        }
+
+        logger.info("Re-applying extend preset after unexpected mirror: \(savedConfig.extendPreset.rawValue)")
+
+        // Use saved resolution when available — CGDisplayBounds returns
+        // mirrored (primary) dimensions while in a mirror set.
+        let savedWidth = savedConfig.resolutionWidth
+        let savedHeight = savedConfig.resolutionHeight
+        let correctedResolution = if let savedWidth, let savedHeight {
+            CGSize(width: savedWidth, height: savedHeight)
+        } else {
+            resolution
+        }
+
+        DisplayConfigurator.apply(
+            savedConfig,
+            primaryID: CGMainDisplayID(),
+            externalID: id,
+            externalResolution: correctedResolution,
+            logger: logger
+        )
+
+        currentDisplay = ConnectedDisplay(
+            id: id, uuid: uuid, name: name, resolution: correctedResolution, appliedConfig: savedConfig
+        )
+        menuBarController?.updateCurrentDisplay(currentDisplay)
+
+        let presetName = savedConfig.extendPreset.displayName.lowercased()
+        let modeLabel = "extend \(presetName)"
+        logger.notice("Re-applied saved config: \(modeLabel)")
+
+        let showToast = UserDefaults.standard.object(forKey: "showToastOnKnownDisplay") as? Bool ?? true
+        if showToast {
+            let toastMessage = "\(name) — \(modeLabel) restored"
+            pendingToastTask?.cancel()
+            pendingToastTask = Task { @MainActor [weak self, logger] in
+                try? await Task.sleep(for: .seconds(1.5))
+                guard !Task.isCancelled else { return }
+                logger.notice("Showing toast: \(toastMessage)")
+                self?.toastController?.show(
+                    message: toastMessage,
+                    onChangeTapped: { [weak self] in
+                        self?.toastController?.dismiss()
+                        self?.showPrompt(
+                            displayID: id, uuid: uuid, name: name, resolution: correctedResolution
+                        )
+                    }
+                )
+            }
+        }
+    }
 }
