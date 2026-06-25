@@ -75,9 +75,14 @@ jobs:
       - name: Create DMG
         run: |
           VERSION="${{ steps.version.outputs.version }}"
+          STAGE="build/dmg"
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE"
+          cp -R build/export/Snap.app "$STAGE/Snap.app"
+          ln -s /Applications "$STAGE/Applications"
           hdiutil create \
             -volname "Snap ${VERSION}" \
-            -srcfolder build/export/Snap.app \
+            -srcfolder "$STAGE" \
             -ov \
             -format UDZO \
             "build/Snap-${VERSION}.dmg"
@@ -174,32 +179,29 @@ jobs:
         id: version
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
 
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           name: Snap-${{ steps.version.outputs.version }}.dmg
 
       - name: Build release body
-        id: body
         run: |
-          if [ -f appcast-snippet.xml ]; then
-            {
-              echo "### Appcast Update"
-              echo ""
-              echo 'Add this `<item>` to `appcast.xml` in the website repo:'
-              echo ""
-              echo '```xml'
-              cat appcast-snippet.xml
-              echo '```'
-            } > release-body.md
-          else
-            touch release-body.md
+          VERSION="${{ steps.version.outputs.version }}"
+          awk -v v="$VERSION" '
+            index($0, "## [" v "]") == 1 { found=1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-body.md
+          if [ ! -s release-body.md ]; then
+            echo "::error::No CHANGELOG.md section found for ${VERSION}" >&2
+            exit 1
           fi
-          {
-            echo "body<<GHEOF"
-            cat release-body.md
-            echo "GHEOF"
-          } >> "$GITHUB_OUTPUT"
+          echo "────── Release body ──────"
+          cat release-body.md
+          echo "──────────────────────────"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -208,13 +210,18 @@ jobs:
           tag_name: ${{ github.ref_name }}
           draft: false
           prerelease: ${{ contains(steps.version.outputs.version, '-') }}
-          body: ${{ steps.body.outputs.body }}
+          body_path: release-body.md
           files: Snap-${{ steps.version.outputs.version }}.dmg
           generate_release_notes: true
 
   notify-website:
     name: Update website appcast
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: >
+      startsWith(github.ref, 'refs/tags/v') &&
+      needs.archive.outputs.ed_signature != '' &&
+      needs.archive.outputs.length != '' &&
+      needs.archive.outputs.build_version != '' &&
+      needs.archive.outputs.pub_date != ''
     needs: [archive, publish]
     runs-on: ubuntu-latest
     environment: website-deploy

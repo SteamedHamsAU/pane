@@ -66,6 +66,20 @@ Scripts/generate-review-instructions.sh --check # verify freshness (CI)
 - Sparkle 2 for auto-updates (SPM dependency).
 - `LSUIElement = true` — menu bar only, no Dock icon.
 
+### Release pipeline
+- Tagging `v*` triggers `.github/workflows/release.yml`:
+  archive → DMG → Sparkle EdDSA sign → GitHub Release → website dispatch.
+- The app is **ad-hoc signed for now** (no Developer ID, not notarized — TODO #19).
+  Until then, fresh installs need `xattr -dr com.apple.quarantine /Applications/Snap.app`.
+- The DMG is staged with the app **plus an `/Applications` symlink** so users can
+  drag-to-install — never build the DMG straight from the bare `.app`.
+- **Release notes come from the matching `CHANGELOG.md` section** (Keep a Changelog),
+  extracted by the `publish` job. A tag with no CHANGELOG entry **fails the release**.
+- **The Sparkle appcast lives in the website repo** (`steamedhams.au/projects/snap/appcast.xml`)
+  and is updated automatically via `repository_dispatch` (`notify-website` job, payload =
+  signature/length/version/build/pubdate). **Never put appcast XML in the GitHub release
+  body** — the website is the source of truth, not the release page.
+
 ## Testing
 - Swift Testing framework for all new tests (not XCTest).
 - Mock display APIs via protocols for unit testing.
