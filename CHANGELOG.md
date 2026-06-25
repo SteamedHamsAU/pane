@@ -4,6 +4,16 @@ All notable changes to Snap will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- Release DMG now includes an `/Applications` symlink so the app can be dragged straight into Applications
+
+### Changed
+
+- GitHub Release notes are now generated from the matching `CHANGELOG.md` section; the Sparkle appcast XML is no longer embedded in the release body (the website appcast is still updated automatically via repository dispatch)
+
 ## [0.4.2-beta] — 2026-05-16
 
 ### Fixed

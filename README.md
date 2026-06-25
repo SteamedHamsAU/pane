@@ -51,7 +51,19 @@ That's it. One interaction, then it's invisible.
 
 ## Install
 
-> Releases coming soon. For now, build from source.
+### Download (recommended)
+
+1. Download the latest `Snap-x.y.z.dmg` from the [Releases page](https://github.com/SteamedHamsAU/snap/releases).
+2. Open the DMG and drag **Snap** onto the **Applications** folder.
+3. Snap isn't notarized yet, so macOS Gatekeeper quarantines it on first launch. Clear the flag once:
+
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/Snap.app
+   ```
+
+4. Launch Snap from Applications — it lives in the menu bar (no Dock icon).
+
+### Build from source
 
 ```bash
 brew install xcodegen swiftformat swiftlint xcbeautify
